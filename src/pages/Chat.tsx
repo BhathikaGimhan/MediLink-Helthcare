@@ -92,7 +92,7 @@ const ChatHistory = () => {
         initial={{ x: isSidebarOpen ? 0 : -300 }}
         animate={{ x: isSidebarOpen ? 0 : -260 }}
         transition={{ duration: 0.3 }}
-        className={`fixed lg:relative z-50 top-0 left-0 h-full w-64 cyber-card p-4 flex flex-col lg:block ${
+        className={`fixed lg:relative z-40 top-0 left-0 h-full w-64 cyber-card p-4 flex flex-col lg:block ${
           isSidebarOpen ? "z-50" : " lg:flex"
         }`}
       >

@@ -1,12 +1,24 @@
 import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { useNotificationStore } from "../stores/notificationStore";
-import { Bell, Bot, Home, MessageCircle, Star, Users } from "lucide-react";
+import {
+  Bell,
+  Bot,
+  Home,
+  MessageCircle,
+  Star,
+  Users,
+  Menu,
+  X,
+  LogIn,
+} from "lucide-react";
+import { useState } from "react";
 
 const Navbar = () => {
   const location = useLocation();
   const notifications = useNotificationStore((state) => state.notifications);
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const links = [
     { to: "/", icon: Home, label: "Home" },
@@ -16,15 +28,17 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-gray-900/90 backdrop-blur-sm border-b border-cyan-500/30 z-50">
+    <nav className="fixed top-0 left-0 right-0 bg-gray-900 border-b border-cyan-500/30 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <MessageCircle className="w-8 h-8 text-cyan-400" />
             <span className="text-xl font-bold neon-text">MediLink</span>
           </Link>
 
-          <div className="flex items-center space-x-8">
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center space-x-8">
             {links.map(({ to, icon: Icon, label }) => (
               <Link key={to} to={to} className="relative group">
                 <div className="flex items-center space-x-2 text-gray-300 hover:text-cyan-400 transition-colors">
@@ -41,6 +55,8 @@ const Navbar = () => {
                 )}
               </Link>
             ))}
+
+            {/* Notifications Icon */}
             <Link to="/notifications" className="relative">
               <Bell className="w-5 h-5 text-gray-300 hover:text-cyan-400 transition-colors" />
               {unreadCount > 0 && (
@@ -49,9 +65,75 @@ const Navbar = () => {
                 </span>
               )}
             </Link>
+
+            {/* Login Link */}
+            <Link
+              to="/login"
+              className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+            >
+              <LogIn className="w-5 h-5 inline-block mr-2" />
+              Login
+            </Link>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden text-gray-300 z-50 hover:text-cyan-400"
+          >
+            {isMenuOpen ? (
+              <X className="w-6 h-6 z-50" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: isMenuOpen ? 0 : "100%" }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="fixed top-0 right-0 bottom-0 w-3/4 bg-gray-900 p-6 md:hidden"
+      >
+        <div className="flex flex-col space-y-6">
+          {links.map(({ to, icon: Icon, label }) => (
+            <Link
+              key={to}
+              to={to}
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center space-x-2 text-gray-300 hover:text-cyan-400 transition-colors"
+            >
+              <Icon className="w-6 h-6" />
+              <span>{label}</span>
+            </Link>
+          ))}
+          <Link
+            to="/notifications"
+            onClick={() => setIsMenuOpen(false)}
+            className="relative flex items-center space-x-2 text-gray-300 hover:text-cyan-400 transition-colors"
+          >
+            <Bell className="w-6 h-6" />
+            <span>Notification</span>
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-9 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </Link>
+
+          {/* Login Link in Mobile */}
+          <Link
+            to="/login"
+            onClick={() => setIsMenuOpen(false)}
+            className="flex items-center space-x-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+          >
+            <LogIn className="w-6 h-6 inline-block mr-2" />
+            <span>Login</span>
+          </Link>
+        </div>
+      </motion.div>
     </nav>
   );
 };
