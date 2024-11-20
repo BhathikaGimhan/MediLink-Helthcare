@@ -1,4 +1,3 @@
-import React from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { useNotificationStore } from "../stores/notificationStore";
@@ -44,7 +43,7 @@ const Navbar = () => {
             ))}
             <Link to="/notifications" className="relative">
               <Bell className="w-5 h-5 text-gray-300 hover:text-cyan-400 transition-colors" />
-              {unreadCount > 0 && (
+              {unreadCount > -1 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {unreadCount}
                 </span>

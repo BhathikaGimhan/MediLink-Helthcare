@@ -8,45 +8,52 @@ import Patients from "../components/Patients";
 const Community = () => {
   const [activeTab, setActiveTab] = useState("Doctors");
 
-  const navItemVariants = {
-    initial: { scale: 1, opacity: 0.7 },
-    active: {
-      scale: 1.2,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 300 },
-    },
-    hover: { scale: 1.1, color: "#67e8f9", transition: { duration: 0.3 } },
-  };
+  const tabs = [
+    { id: "Doctors", label: "Doctors' Community" },
+    { id: "Patients", label: "Patients' Problems" },
+  ];
 
   return (
     <div className="space-y-8">
       {/* Navigation */}
-      <div className="flex justify-center space-x-6 mb-8">
-        {["Doctors", "Patients"].map((tab) => (
-          <motion.button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`cyber-button ${
-              activeTab === tab
-                ? "bg-cyan-500/20 text-cyan-400"
-                : "text-gray-400"
-            } py-2 px-4 rounded-lg shadow-lg`}
-            variants={navItemVariants}
-            initial="initial"
-            animate={activeTab === tab ? "active" : "initial"}
-            whileHover="hover"
-          >
-            {tab}
-          </motion.button>
-        ))}
+      <div className="relative">
+        <nav className="flex justify-center space-x-8 bg-gray-900/90 py-4 border-b border-cyan-500/30">
+          {tabs.map((tab) => (
+            <div
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`cursor-pointer relative text-gray-400 text-lg font-bold transition-all duration-300 hover:text-cyan-400 ${
+                activeTab === tab.id ? "text-cyan-400" : ""
+              }`}
+            >
+              {tab.label}
+            </div>
+          ))}
+        </nav>
+
+        {/* Horizontal Glow Effect */}
+        <motion.div
+          layoutId="active-tab-indicator"
+          className="absolute bottom-0 h-1 neon-glow bg-cyan-400 rounded-md"
+          initial={false}
+          animate={{
+            left: `${tabs.findIndex((tab) => tab.id === activeTab) * 50}%`,
+            width: "50%",
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 200,
+            damping: 20,
+          }}
+        />
       </div>
 
-      {/* Conditional Rendering */}
+      {/* Content */}
       <motion.div
         key={activeTab}
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -30 }}
+        exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
         {activeTab === "Doctors" ? <Doctors /> : <Patients />}
