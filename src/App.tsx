@@ -5,7 +5,7 @@ import Home from "./pages/Home";
 import DoctorRanking from "./pages/DoctorRanking";
 import DoctorDetails from "./pages/DoctorDetails";
 import Community from "./pages/Community";
-import ChatHistory from "./pages/ChatHistory";
+import ChatHistory from "./pages/Chat";
 import NotificationsPage from "./pages/NotificationsPage";
 
 function App() {
