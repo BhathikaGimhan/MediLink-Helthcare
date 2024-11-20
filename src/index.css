@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-900;
+  }
+}
+
+@layer components {
+  .cyber-gradient {
+    background: radial-gradient(circle at 50% 50%,
+      rgba(0, 255, 255, 0.1) 0%,
+      rgba(0, 0, 0, 0) 50%);
+    animation: pulse 4s ease-in-out infinite;
+  }
+
+  .cyber-card {
+    @apply relative bg-gray-800 border border-cyan-500/30 rounded-lg overflow-hidden;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+  }
+
+  .cyber-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    pointer-events: none;
+  }
+
+  .cyber-button {
+    @apply px-4 py-2 bg-cyan-900/50 text-cyan-300 rounded border border-cyan-500/30
+           hover:bg-cyan-800/50 transition-all duration-300 relative overflow-hidden;
+  }
+
+  .cyber-button::after {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-transparent;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .cyber-button:hover::after {
+    transform: translateX(0);
+  }
+
+  .neon-text {
+    @apply text-cyan-400;
+    text-shadow: 0 0 5px theme('colors.cyan.400'),
+                 0 0 10px theme('colors.cyan.400');
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
