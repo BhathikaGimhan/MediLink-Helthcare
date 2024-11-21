@@ -54,12 +54,17 @@
   }
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 0.5;
+/* .neon-glass:hover {
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), 0 0 50px rgba(0, 255, 255, 0.4);
+  transform: scale(1.02);
+  transition: all 0.3s ease-in-out;
+} */
+
+@keyframes slide-highlight {
+  0% {
+    transform: translateX(-100%);
   }
-  50% {
-    opacity: 0.8;
+  100% {
+    transform: translateX(100%);
   }
 }
