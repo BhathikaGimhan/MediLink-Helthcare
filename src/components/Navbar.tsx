@@ -63,7 +63,13 @@ const Navbar = () => {
             {/* Notifications Icon */}
             <Link to="/notifications" className="relative">
               <div className="relative group">
-                <Bell className="w-6 h-6 text-gray-300 hover:text-cyan-400 group transition-colors" />
+                <Bell
+                  className={`w-6 h-6  hover:text-cyan-400 group transition-colors ${
+                    location.pathname === "/notifications"
+                      ? "text-cyan-400"
+                      : "text-gray-300"
+                  }`}
+                />
                 {unreadCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500/50 animate-pulse group-hover:animate-none backdrop-blur-sm text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {unreadCount}
@@ -109,7 +115,9 @@ const Navbar = () => {
               key={to}
               to={to}
               onClick={() => setIsMenuOpen(false)}
-              className="flex items-center space-x-2 text-gray-300 hover:text-cyan-400 transition-colors"
+              className={`flex ${
+                location.pathname === to ? "text-cyan-400" : "text-gray-300"
+              } items-center space-x-2  hover:text-cyan-400 transition-colors`}
             >
               <Icon className="w-6 h-6" />
               <span>{label}</span>
@@ -118,12 +126,18 @@ const Navbar = () => {
           <Link
             to="/notifications"
             onClick={() => setIsMenuOpen(false)}
-            className="relative flex items-center space-x-2 text-gray-300 hover:text-cyan-400 transition-colors"
+            className={`relative flex items-center space-x-2 ${
+              location.pathname === "/notifications"
+                ? "text-cyan-400"
+                : "text-gray-300"
+            } hover:text-cyan-400 transition-colors`}
           >
             <Bell className="w-6 h-6" />
             <span>Notification</span>
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-9 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              <span
+                className={`absolute top-1 right-9 text-gray-300 bg-red-500 text-xs rounded-full w-5 h-5 flex items-center justify-center`}
+              >
                 {unreadCount}
               </span>
             )}
