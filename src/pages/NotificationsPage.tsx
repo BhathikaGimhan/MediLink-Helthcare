@@ -20,14 +20,15 @@ const NotificationsPage = () => {
         {notifications.length === 0 ? (
           <p className="text-gray-400">No notifications to show.</p>
         ) : (
-          notifications.map((notification) => (
+          notifications.map((notification, index) => (
             <motion.div
               key={notification.id}
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              transition={{ type: "spring", stiffness: 150 }}
-              className={`p-6 border rounded-lg shadow-lg transition-all duration-300 ${
+              // transition={{ type: "spring", stiffness: 150 }}
+              transition={{ delay: index * 0.2 }}
+              className={`p-6 border rounded-lg shadow-lg ${
                 notification.read ? "bg-gray-800" : "bg-gray-900"
               } ${!notification.read ? "border-l-4 border-cyan-400" : ""}`}
             >

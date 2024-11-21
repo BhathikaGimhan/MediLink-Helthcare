@@ -38,19 +38,23 @@ const Navbar = () => {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden lg:flex items-center space-x-8">
             {links.map(({ to, icon: Icon, label }) => (
               <Link key={to} to={to} className="relative group">
-                <div className="flex items-center space-x-2 text-gray-300 hover:text-cyan-400 transition-colors">
+                <div
+                  className={`flex items-center ${
+                    location.pathname === to ? "text-cyan-400" : "text-gray-300"
+                  } space-x-2  hover:text-cyan-400 transition-colors`}
+                >
                   <Icon className="w-5 h-5" />
                   <span>{label}</span>
                 </div>
                 {location.pathname === to && (
                   <motion.div
                     layoutId="navbar-indicator"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400"
+                    className="absolute bottom-10 left-0 right-0 h-0.5 bg-cyan-400"
                     initial={false}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   />
                 )}
               </Link>
@@ -58,12 +62,14 @@ const Navbar = () => {
 
             {/* Notifications Icon */}
             <Link to="/notifications" className="relative">
-              <Bell className="w-5 h-5 text-gray-300 hover:text-cyan-400 transition-colors" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
+              <div className="relative group">
+                <Bell className="w-6 h-6 text-gray-300 hover:text-cyan-400 group transition-colors" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500/50 animate-pulse group-hover:animate-none backdrop-blur-sm text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
             </Link>
 
             {/* Login Link */}
@@ -79,7 +85,7 @@ const Navbar = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden text-gray-300 z-50 hover:text-cyan-400"
+            className="lg:hidden text-gray-300 z-50 hover:text-cyan-400"
           >
             {isMenuOpen ? (
               <X className="w-6 h-6 z-50" />
@@ -95,7 +101,7 @@ const Navbar = () => {
         initial={{ x: "100%" }}
         animate={{ x: isMenuOpen ? 0 : "100%" }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed top-0 right-0 bottom-0 w-3/4 bg-gray-900 p-6 md:hidden"
+        className="fixed top-0 right-0 bottom-0 w-3/4 bg-gray-900 p-6 lg:hidden"
       >
         <div className="flex flex-col space-y-6">
           {links.map(({ to, icon: Icon, label }) => (
