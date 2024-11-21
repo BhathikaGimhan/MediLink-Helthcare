@@ -35,7 +35,7 @@ const Home = () => {
         className="text-center space-y-4"
       >
         <ExamplePage />
-        <h1 className="text-5xl font-bold neon-text">Welcome to CyberDoc</h1>
+        <h1 className="text-5xl font-bold neon-text">Welcome to MediLink</h1>
         <p className="text-xl text-gray-400 max-w-2xl mx-auto">
           The future of healthcare ratings is here. Connect with top medical
           professionals and make informed decisions about your health.
@@ -66,7 +66,7 @@ const Home = () => {
         transition={{ delay: 0.6 }}
         className="cyber-card p-8 mt-12"
       >
-        <h2 className="text-2xl font-bold mb-4">Why Choose CyberDoc?</h2>
+        <h2 className="text-2xl font-bold mb-4">Why Choose MediLink?</h2>
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-xl font-semibold mb-2 text-cyan-400">
