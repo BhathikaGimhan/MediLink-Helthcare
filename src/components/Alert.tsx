@@ -1,20 +1,25 @@
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 
-const Alert = ({ message, type, onClose }) => {
-  const typeStyles = {
+type AlertProps = {
+  message: string;
+  type: "success" | "error" | "info";
+  onClose: () => void;
+};
+const Alert: React.FC<AlertProps> = ({ message, type, onClose }) => {
+  const typeStyles: Record<string, string> = {
     success:
       "from-green-500/50 to-green-700/50 text-green-300 border border-green-500",
     error: "from-red-500/50 to-red-700/50 text-red-300 border border-red-500",
     info: "from-cyan-500/50 to-cyan-700/50 text-cyan-300 border border-cyan-500",
   };
-  const bgAnimations = {
+  const bgAnimations: Record<string, string> = {
     success:
       "bg-gradient-to-r from-transparent via-green-500/30  to-transparent ",
     error: "bg-gradient-to-r from-transparent via-red-500/30  to-transparent ",
     info: "bg-gradient-to-r from-transparent via-cyan-500/30  to-transparent ",
   };
-  const btnColor = {
+  const btnColor: Record<string, string> = {
     success: "text-green-300 hover:text-green-100",
     error: "text-red-300 hover:text-red-100",
     info: "text-cyan-300 hover:text-cyan-100",

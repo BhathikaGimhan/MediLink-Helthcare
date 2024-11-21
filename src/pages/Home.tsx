@@ -1,7 +1,6 @@
-import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Star, MessageCircle, Users, Bot } from "lucide-react";
+import { Star, Users, Bot } from "lucide-react";
 import ExamplePage from "./ExamplePage";
 
 const features = [

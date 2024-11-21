@@ -1,5 +1,3 @@
-import React from "react";
-
 const GoogleLogin = () => {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-cyan-700 to-blue-800">

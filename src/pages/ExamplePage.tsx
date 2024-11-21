@@ -2,11 +2,15 @@ import { useState } from "react";
 import Alert from "../components/Alert";
 import { AnimatePresence } from "framer-motion";
 // Import the Alert component
+type AlertType = {
+  message: string;
+  type: "success" | "error" | "info"; // Adjust the type based on your use case
+} | null;
 
 const ExamplePage = () => {
-  const [alert, setAlert] = useState(null);
+  const [alert, setAlert] = useState<AlertType>(null);
 
-  const showAlert = (message, type) => {
+  const showAlert = (message: string, type: "success" | "error" | "info") => {
     setAlert({ message, type });
     setTimeout(() => setAlert(null), 5000); // Auto-dismiss after 5 seconds
   };

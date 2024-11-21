@@ -1,5 +1,5 @@
 // Community.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 
 import Doctors from "../components/Doctors";

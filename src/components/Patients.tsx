@@ -27,7 +27,7 @@ const patientPosts = [
 const Patients = () => {
   const [newPost, setNewPost] = useState("");
   const [posts, setPosts] = useState(patientPosts);
-  const [expandedPost, setExpandedPost] = useState(null);
+  const [expandedPost, setExpandedPost] = useState<number | null>(null);
 
   const handlePostSubmit = () => {
     if (newPost.trim()) {
@@ -47,7 +47,7 @@ const Patients = () => {
     }
   };
 
-  const toggleExpanded = (postId) => {
+  const toggleExpanded = (postId: number) => {
     setExpandedPost(expandedPost === postId ? null : postId);
   };
 

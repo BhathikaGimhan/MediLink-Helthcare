@@ -1,4 +1,3 @@
-import React from "react";
 import { useNotificationStore } from "../stores/notificationStore";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle } from "lucide-react"; // Add icons for better UI

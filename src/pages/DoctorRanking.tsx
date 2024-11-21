@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Star, MapPin, Award, ThumbsUp } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Star, MapPin, Award, ThumbsUp } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const mockDoctors = [
   {
@@ -11,7 +11,8 @@ const mockDoctors = [
     rating: 4.8,
     reviews: 128,
     location: "Neo Tokyo Central",
-    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300&h=300"
+    image:
+      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300&h=300",
   },
   {
     id: 2,
@@ -20,7 +21,8 @@ const mockDoctors = [
     rating: 4.9,
     reviews: 256,
     location: "Upper Manhattan District",
-    image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=300&h=300"
+    image:
+      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=300&h=300",
   },
   {
     id: 3,
@@ -29,13 +31,14 @@ const mockDoctors = [
     rating: 4.7,
     reviews: 184,
     location: "Silicon Valley Med Center",
-    image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=300&h=300"
-  }
+    image:
+      "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=300&h=300",
+  },
 ];
 
 const DoctorRanking = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSpecialty, setSelectedSpecialty] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSpecialty, setSelectedSpecialty] = useState("all");
 
   return (
     <div className="space-y-8">
@@ -87,7 +90,9 @@ const DoctorRanking = () => {
                     <div className="flex items-center space-x-2">
                       <Star className="w-5 h-5 text-yellow-400" />
                       <span className="font-bold">{doctor.rating}</span>
-                      <span className="text-sm text-gray-400">({doctor.reviews} reviews)</span>
+                      <span className="text-sm text-gray-400">
+                        ({doctor.reviews} reviews)
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -115,6 +120,6 @@ const DoctorRanking = () => {
       </div>
     </div>
   );
-}
+};
 
 export default DoctorRanking;

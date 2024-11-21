@@ -1,5 +1,5 @@
 // Doctors.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   MessageCircle,
@@ -27,7 +27,7 @@ const doctorPosts = [
 const Doctors = () => {
   const [newPost, setNewPost] = useState("");
   const [posts, setPosts] = useState(doctorPosts);
-  const [expandedPost, setExpandedPost] = useState(null);
+  const [expandedPost, setExpandedPost] = useState<number | null>(null);
 
   const handlePostSubmit = () => {
     if (newPost.trim()) {
@@ -47,7 +47,7 @@ const Doctors = () => {
     }
   };
 
-  const toggleExpanded = (postId) => {
+  const toggleExpanded = (postId: number) => {
     setExpandedPost(expandedPost === postId ? null : postId);
   };
 
