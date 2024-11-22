@@ -7,6 +7,7 @@ import Community from "./pages/Community";
 import ChatHistory from "./pages/Chat";
 import NotificationsPage from "./pages/NotificationsPage";
 import GoogleLogin from "./pages/Login";
+import TreatmentReport from "./pages/TreatmentReport";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Route path="/community" element={<Community />} />
             <Route path="/chat-history" element={<ChatHistory />} />
             <Route path="/login" element={<GoogleLogin />} />
+            <Route path="/report" element={<TreatmentReport />} />
           </Routes>
         </main>
       </div>
