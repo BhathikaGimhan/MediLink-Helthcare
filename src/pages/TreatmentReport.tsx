@@ -1,6 +1,6 @@
 import { useState } from "react";
 import jsPDF from "jspdf";
-import { FileText } from "lucide-react";
+import { DownloadCloudIcon, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 
 const TreatmentReport = () => {
@@ -231,9 +231,9 @@ const TreatmentReport = () => {
       {/* Generate Button */}
       <button
         onClick={generatePDF}
-        className="w-full cyber-button py-2 px-4 rounded-lg transition"
+        className="w-full flex justify-center gap-5 items-center cyber-button py-2 px-4 rounded-lg transition"
       >
-        Generate PDF Report
+        <DownloadCloudIcon /> Generate PDF Report
       </button>
     </div>
   );
