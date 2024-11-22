@@ -1,6 +1,7 @@
 import { useState } from "react";
 import jsPDF from "jspdf";
 import { FileText } from "lucide-react";
+import { motion } from "framer-motion";
 
 const TreatmentReport = () => {
   const [includeDoctorEvidence, setIncludeDoctorEvidence] = useState(true);
@@ -94,7 +95,7 @@ const TreatmentReport = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-gray-900 text-gray-100 rounded-lg shadow-md space-y-6 animate-fade-in">
+    <div className="p-6 max-w-4xl mx-auto bg-gray-900 text-gray-100 rounded-lg space-y-6 animate-fade-in">
       {/* Header */}
       <h2 className="text-3xl font-bold text-cyan-400 flex items-center space-x-2">
         <FileText className="w-6 h-6" />
@@ -108,51 +109,65 @@ const TreatmentReport = () => {
       <div className="grid md:grid-cols-2 gap-6">
         {[
           {
+            id: 1,
             label: "Include Doctor Evidence",
             state: includeDoctorEvidence,
             setter: setIncludeDoctorEvidence,
           },
           {
+            id: 2,
             label: "Include Treatment Details",
             state: includeTreatmentDetails,
             setter: setIncludeTreatmentDetails,
           },
           {
+            id: 3,
             label: "Include Notes",
             state: includeNotes,
             setter: setIncludeNotes,
           },
           {
+            id: 4,
             label: "Include Doctor Suggestions",
             state: includeDoctorSuggestions,
             setter: setIncludeDoctorSuggestions,
           },
           {
+            id: 5,
             label: "Include Appointment Details",
             state: includeAppointmentDetails,
             setter: setIncludeAppointmentDetails,
           },
-        ].map(({ label, state, setter }) => (
-          <div className="flex items-center justify-between">
-            <label className="text-sm">{label}:</label>
-            <div
-              className={`w-10 h-5 rounded-full cursor-pointer ${
-                state ? "bg-cyan-500" : "bg-gray-500 animate-pulse"
-              } relative`}
-              onClick={() => setter(!state)}
-            >
+        ].map(({ id, label, state, setter }) => (
+          <motion.div
+            key={id}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            // transition={{ type: "spring", stiffness: 150 }}
+            transition={{ delay: id * 0.2 }}
+          >
+            <div className="flex items-center justify-between">
+              <label className="text-sm">{label}:</label>
               <div
-                className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${
-                  state ? "translate-x-5" : "translate-x-1"
-                }`}
-              ></div>
+                className={`w-10 h-5 rounded-full cursor-pointer ${
+                  state ? "bg-cyan-500" : "bg-gray-500 animate-pulse"
+                } relative`}
+                onClick={() => setter(!state)}
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform ${
+                    state ? "translate-x-5" : "translate-x-1"
+                  }`}
+                ></div>
+              </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
       {/* Preview Section */}
-      <div className="p-4 bg-gray-800 rounded-lg shadow-md space-y-3">
+      <div className="p-4 bg-gray-800 rounded-lg shadow-md max-h-80 min-h-80 overflow-y-auto space-y-3">
         <h3 className="text-xl font-semibold text-gray-100">Report Preview</h3>
         <div className="text-sm space-y-2">
           <p>
