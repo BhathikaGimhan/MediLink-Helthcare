@@ -1,24 +1,68 @@
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-  Send,
-  MapPin,
-  Bot,
-  User,
-  Plus,
-  ChevronRight,
-  ChevronLeft,
-  DownloadCloud,
-} from "lucide-react";
 import { format } from "date-fns";
-import { Link } from "react-router-dom";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import Sidebar from "../components/chat/Sidebar";
+import LocationBar from "../components/chat/LocationBar";
+import ChatMessageComponent from "../components/chat/ChatMessageComponent";
+import ChatInput from "../components/chat/ChatInput";
+// Hardcoded doctor data
+export interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  location: string;
+  conditions: string[];
+}
 
-interface ChatSession {
+const doctors: Doctor[] = [
+  {
+    id: "1",
+    name: "Dr. John Smith",
+    specialty: "Neurology",
+    location: "Downtown",
+    conditions: ["headache", "migraine", "neuralgia"],
+  },
+  {
+    id: "2",
+    name: "Dr. Emily Johnson",
+    specialty: "Cardiology",
+    location: "Midtown",
+    conditions: ["chest pain", "heart palpitations"],
+  },
+  {
+    id: "3",
+    name: "Dr. Michael Lee",
+    specialty: "Orthopedics",
+    location: "Downtown",
+    conditions: ["back pain", "joint pain"],
+  },
+  {
+    id: "4",
+    name: "Dr. Sarah Perera",
+    specialty: "Gastroenterology",
+    location: "Downtown",
+    conditions: ["stomach pain", "abdominal discomfort", "indigestion"],
+  },
+];
+
+// Chat session interface
+export interface ChatSession {
   id: string;
   date: string;
   preview: string;
 }
 
+// Chat message interface
+export interface ChatMessage {
+  id: number;
+  type: "bot" | "user";
+  content: string;
+  timestamp: string;
+}
+
+// Mock chat sessions
 const mockSessions: ChatSession[] = [
   {
     id: "1",
@@ -32,138 +76,145 @@ const mockSessions: ChatSession[] = [
   },
 ];
 
-const mockChats = [
-  {
-    id: 1,
-    type: "bot",
-    content: "Hello! I'm your MediLink AI assistant. How can I help you today?",
-    timestamp: "10:30 AM",
-  },
-  {
-    id: 2,
-    type: "user",
-    content: "I need to find a neural specialist near downtown.",
-    timestamp: "10:31 AM",
-  },
-  {
-    id: 3,
-    type: "bot",
-    content:
-      "I'll help you find a specialist. First, could you confirm your location?",
-    timestamp: "10:31 AM",
-  },
-];
 
-const ChatHistory = () => {
+// Main ChatHistory component
+const ChatHistory: React.FC = () => {
   const [message, setMessage] = useState("");
   const [location, setLocation] = useState("");
   const [activeSession, setActiveSession] = useState<string>("1");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [chats, setChats] = useState<ChatMessage[]>([
+    {
+      id: 1,
+      type: "bot",
+      content:
+        "Hey there! I'm MediLink AI, your friendly health buddy. What's going on with you today?",
+      timestamp: format(new Date(), "hh:mm a"),
+    },
+  ]);
+  const [lastCondition, setLastCondition] = useState<string>("");
+  const [isWaitingForDetails, setIsWaitingForDetails] = useState<boolean>(false);
 
-  // Update sidebar state based on screen width
+  // Initialize Gemini AI
+  const genAI = new GoogleGenerativeAI(
+    "AIzaSyArwTwGGW5Xp-9i3TXWB2rthlboEefVV3U"
+  ); // Replace with your API key
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+  // Handle sidebar resize
   useEffect(() => {
     const handleResize = () => {
-      // Check if the screen width is larger than 'lg' breakpoint (1024px)
       if (window.innerWidth >= 1024) {
-        setIsSidebarOpen(true); // Sidebar is open on larger screens
+        setIsSidebarOpen(true);
       } else {
-        setIsSidebarOpen(false); // Sidebar is closed on smaller screens
+        setIsSidebarOpen(false);
       }
     };
 
-    // Attach resize event listener
     window.addEventListener("resize", handleResize);
-
-    // Call handleResize to set the initial state when the component mounts
     handleResize();
-
-    // Clean up the event listener when the component unmounts
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+  // Toggle sidebar
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  // Handle message submission
+  const handleSendMessage = async () => {
+    if (!message.trim()) return;
+  
+    const userMessage: ChatMessage = {
+      id: chats.length + 1,
+      type: "user",
+      content: message,
+      timestamp: format(new Date(), "hh:mm a"),
+    };
+  
+    setChats((prev) => [...prev, userMessage]);
+    setMessage("");
+  
+    try {
+      const normalizedMessage = message.trim(); // <-- NO TRANSLATION
+  
+      const isNewCondition = !lastCondition || chats.length <= 2;
+  
+      let prompt = "";
+      let botResponse = "";
+      let matchingDoctors: Doctor[] = [];
+  
+      if (isNewCondition) {
+        prompt = `
+          Your name is MediLink. yor are friendly health buddy.. The user reported: "${normalizedMessage}".
+        `;
+        setLastCondition(normalizedMessage);
+        setIsWaitingForDetails(true);
+      } else if (isWaitingForDetails) {
+        prompt = `
+          Your name is MediLink. yor are friendly health buddy.. The user previously reported: "${lastCondition}". Their latest response is: "${normalizedMessage}".
+          Doctor data: ${JSON.stringify(doctors)}
+        `;
+        setIsWaitingForDetails(false);
+      } else {
+        prompt = `
+          Your name is MediLink. yor are friendly health buddy.. The user previously reported: "${lastCondition}". Their latest response is: "${normalizedMessage}".
+          Doctor data: ${JSON.stringify(doctors)}
+        `;
+      }
+  
+      const result = await model.generateContent(prompt);
+      botResponse = await result.response.text();
+  
+      if (!isWaitingForDetails) {
+        matchingDoctors = doctors.filter(
+          (doctor) =>
+            lastCondition.includes(doctor.specialty.toLowerCase()) ||
+            doctor.conditions.some((condition) =>
+              lastCondition.includes(condition.toLowerCase())
+            )
+        );
+  
+        if (matchingDoctors.length > 0 && !botResponse.includes("could help")) {
+          botResponse += ` Oh, and I know a few doctors who could help with this. Like, there’s ${matchingDoctors
+            .map((doc) => `${doc.name}, a ${doc.specialty.toLowerCase()} in ${doc.location}`)
+            .join(" or ")}. Want more info on them?`;
+        } else if (!botResponse.includes("could help")) {
+          botResponse += ` I don’t have a specialist for that right now, but a general doctor could check you out. Want me to look for one?`;
+        }
+      }
+  
+      const botMessage: ChatMessage = {
+        id: chats.length + 2,
+        type: "bot",
+        content: botResponse,
+        timestamp: format(new Date(), "hh:mm a"),
+      };
+  
+      setChats((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error("Error with Gemini AI:", error);
+      const errorMessage: ChatMessage = {
+        id: chats.length + 2,
+        type: "bot",
+        content: "Oops, something went wrong! Can you try again?",
+        timestamp: format(new Date(), "hh:mm a"),
+      };
+      setChats((prev) => [...prev, errorMessage]);
+    }
   };
+  
 
   return (
     <div className="h-[calc(100vh-6rem)] flex flex-col lg:flex-row lg:space-x-4">
-      {/* Sidebar */}
-      <motion.div
-        initial={{ x: isSidebarOpen ? 0 : -300 }}
-        animate={{ x: isSidebarOpen ? 0 : -260 }}
-        transition={{ duration: 0.3 }}
-        className={`fixed lg:relative z-40 top-0 left-0 h-full w-64 cyber-card p-4 flex flex-col lg:block ${
-          isSidebarOpen ? "z-50" : " lg:flex"
-        }`}
-      >
-        <button
-          onClick={() => console.log("Start new chat")}
-          className="cyber-button w-full mb-4 flex items-center justify-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Chat</span>
-        </button>
+      <Sidebar
+        sessions={mockSessions}
+        activeSession={activeSession}
+        isSidebarOpen={isSidebarOpen}
+        setActiveSession={setActiveSession}
+        toggleSidebar={toggleSidebar}
+      />
 
-        <div className="flex-1 overflow-y-auto space-y-2">
-          {mockSessions.map((session) => (
-            <div
-              key={session.id}
-              onClick={() => setActiveSession(session.id)}
-              className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                activeSession === session.id
-                  ? "bg-cyan-900/30 border border-cyan-500/30"
-                  : "hover:bg-gray-800"
-              }`}
-            >
-              <div className="text-sm font-semibold mb-1">
-                {format(new Date(session.date), "MMM d, yyyy")}
-              </div>
-              <p className="text-xs text-gray-400 truncate">
-                {session.preview}
-              </p>
-            </div>
-          ))}
-        </div>
-        <button
-          onClick={toggleSidebar}
-          className=" absolute h-20 lg:hidden top-1/2 bottom-1/2 -right-9 z-50 p-2 rounded-full bg-gray-800 border border-cyan-500 text-cyan-400 shadow-lg"
-        >
-          {isSidebarOpen ? (
-            <ChevronLeft size={20} />
-          ) : (
-            <ChevronRight size={20} />
-          )}
-        </button>
-      </motion.div>
-
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col space-y-4 px-4 lg:px-0">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="cyber-card p-4"
-        >
-          <div className="flex items-center overflow-x-auto space-x-4">
-            <div className="location flex items-center space-x-4">
-              <MapPin className="w-5 h-5 text-cyan-400" />
-              <input
-                type="text"
-                placeholder="Enter your location..."
-                className="flex-1 max-sm:flex max-sm:w-28 px-4 py-2 bg-gray-800 border border-cyan-500/30 rounded-lg focus:outline-none focus:border-cyan-400"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </div>
-            <Link to="/report">
-              <div className="export-pdf flex items-center space-x-4 cyber-button">
-                <DownloadCloud className="w-5 h-5 text-cyan-400" />
-                <span>Export PDF</span>
-              </div>
-            </Link>
-          </div>
-        </motion.div>
+        <LocationBar location={location} setLocation={setLocation} />
 
         <motion.div
           initial={{ opacity: 0 }}
@@ -172,59 +223,16 @@ const ChatHistory = () => {
         >
           <div className="h-full flex flex-col">
             <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-              {mockChats.map((chat, index) => (
-                <motion.div
-                  key={chat.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`flex ${
-                    chat.type === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`flex items-start space-x-2 max-w-[80%] ${
-                      chat.type === "user"
-                        ? "flex-row-reverse space-x-reverse"
-                        : ""
-                    }`}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gray-800 border border-cyan-500/30 flex items-center justify-center">
-                      {chat.type === "bot" ? (
-                        <Bot className="w-4 h-4 text-cyan-400" />
-                      ) : (
-                        <User className="w-4 h-4 text-cyan-400" />
-                      )}
-                    </div>
-                    <div
-                      className={`rounded-lg p-3 ${
-                        chat.type === "user"
-                          ? "bg-cyan-900/30 border border-cyan-500/30"
-                          : "bg-gray-800 border border-gray-700"
-                      }`}
-                    >
-                      <p className="text-sm">{chat.content}</p>
-                      <span className="text-xs text-gray-400 mt-1 block">
-                        {chat.timestamp}
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
+              {chats.map((chat, index) => (
+                <ChatMessageComponent key={chat.id} chat={chat} index={index} />
               ))}
             </div>
 
-            <div className="mt-4 flex space-x-4">
-              <input
-                type="text"
-                placeholder="Type your message..."
-                className="flex-1 px-4 py-2 bg-gray-800 border border-cyan-500/30 rounded-lg focus:outline-none focus:border-cyan-400"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-              <button className="cyber-button">
-                <Send className="w-5 h-5" />
-              </button>
-            </div>
+            <ChatInput
+              message={message}
+              setMessage={setMessage}
+              handleSendMessage={handleSendMessage}
+            />
           </div>
         </motion.div>
       </div>

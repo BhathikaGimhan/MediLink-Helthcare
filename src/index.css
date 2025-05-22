@@ -36,6 +36,31 @@
     );
     animation: pulse 4s ease-in-out infinite;
   }
+  .markdown-content {
+    line-height: 1.6;
+    color: #333;
+  }
+  
+  .markdown-content h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 1rem 0 0.5rem;
+    color: #1a1a1a;
+  }
+  
+  .markdown-content p {
+    margin: 0.5rem 0;
+  }
+  
+  .markdown-content ul {
+    list-style-type: disc;
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+  }
+  
+  .markdown-content li {
+    margin: 0.25rem 0;
+  }
 
   .cyber-card {
     @apply relative bg-gray-800 border border-cyan-500/30 rounded-lg;
