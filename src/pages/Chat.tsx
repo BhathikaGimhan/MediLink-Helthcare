@@ -7,6 +7,8 @@ import Sidebar from "../components/chat/Sidebar";
 import LocationBar from "../components/chat/LocationBar";
 import ChatMessageComponent from "../components/chat/ChatMessageComponent";
 import ChatInput from "../components/chat/ChatInput";
+import { useNavigate } from "react-router-dom";
+import { useUserStore } from "../stores/userStore";
 // Hardcoded doctor data
 export interface Doctor {
   id: string;
@@ -83,6 +85,8 @@ const ChatHistory: React.FC = () => {
   const [location, setLocation] = useState("");
   const [activeSession, setActiveSession] = useState<string>("1");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { user } = useUserStore();
+  const navigate = useNavigate();
   const [chats, setChats] = useState<ChatMessage[]>([
     {
       id: 1,
@@ -94,6 +98,12 @@ const ChatHistory: React.FC = () => {
   ]);
   const [lastCondition, setLastCondition] = useState<string>("");
   const [isWaitingForDetails, setIsWaitingForDetails] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/login"); // Redirect to login if not authenticated
+    }
+  }, [user, navigate]);
 
   // Initialize Gemini AI
   const genAI = new GoogleGenerativeAI(

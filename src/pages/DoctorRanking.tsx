@@ -1,124 +1,117 @@
-import { useState } from "react";
+// src/pages/DoctorRanking.tsx
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, MapPin, Award, ThumbsUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import { db } from "../firebase";
+import { collection, getDocs } from "firebase/firestore";
+import { Stethoscope } from "lucide-react";
 
-const mockDoctors = [
-  {
-    id: 1,
-    name: "Dr. Sarah Chen",
-    specialty: "Neurology",
-    rating: 4.8,
-    reviews: 128,
-    location: "Neo Tokyo Central",
-    image:
-      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300&h=300",
-  },
-  {
-    id: 2,
-    name: "Dr. Alex Rodriguez",
-    specialty: "Cybernetic Surgery",
-    rating: 4.9,
-    reviews: 256,
-    location: "Upper Manhattan District",
-    image:
-      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=300&h=300",
-  },
-  {
-    id: 3,
-    name: "Dr. Maya Patel",
-    specialty: "Neural Integration",
-    rating: 4.7,
-    reviews: 184,
-    location: "Silicon Valley Med Center",
-    image:
-      "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=300&h=300",
-  },
-];
+interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  rating: number;
+  reviews: number;
+  location: string;
+  image: string;
+  bio: string;
+  education: string;
+  experience: string;
+  procedures: string[];
+  availability: {
+    status: string;
+    nextSlot: string;
+    schedule: string[];
+  };
+  pharmacies: { name: string; address: string; hours: string; specialties: string[] }[];
+  privateClinic: { name: string; address: string; facilities: string[]; appointments: string };
+  medicalCenterId: string;
+  medicalCenterName: string;
+}
 
 const DoctorRanking = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSpecialty, setSelectedSpecialty] = useState("all");
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const doctorsCollection = collection(db, "doctors");
+        const doctorsSnapshot = await getDocs(doctorsCollection);
+        const doctorsList = doctorsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Doctor[];
+        setDoctors(doctorsList);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch doctors.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDoctors();
+  }, []);
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-cyan-50">Loading...</div>;
+  }
 
   return (
-    <div className="space-y-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="cyber-card p-6"
-      >
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Search doctors..."
-              className="w-full px-4 py-2 bg-gray-800 border border-cyan-500/30 rounded-lg focus:outline-none focus:border-cyan-400"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <select
-            className="px-4 py-2 bg-gray-800 border border-cyan-500/30 rounded-lg focus:outline-none focus:border-cyan-400"
-            value={selectedSpecialty}
-            onChange={(e) => setSelectedSpecialty(e.target.value)}
-          >
-            <option value="all">All Specialties</option>
-            <option value="neurology">Neurology</option>
-            <option value="cybernetic">Cybernetic Surgery</option>
-            <option value="neural">Neural Integration</option>
-          </select>
-        </div>
-      </motion.div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-gray-900 text-cyan-50 p-8"
+    >
+      <div className="container mx-auto">
+        <h1 className="text-4xl font-bold neon-text mb-8 text-center">Find a Doctor</h1>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockDoctors.map((doctor, index) => (
+        {error && (
           <motion.div
-            key={doctor.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-red-400 bg-red-900/20 border border-red-500/30 p-3 rounded-lg text-center mb-4"
           >
-            <Link to={`/doctors/${doctor.id}`}>
-              <div className="cyber-card hover:scale-105 transition-transform duration-300">
-                <div className="relative">
-                  <img
-                    src={doctor.image}
-                    alt={doctor.name}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-transparent p-4">
-                    <div className="flex items-center space-x-2">
-                      <Star className="w-5 h-5 text-yellow-400" />
-                      <span className="font-bold">{doctor.rating}</span>
-                      <span className="text-sm text-gray-400">
-                        ({doctor.reviews} reviews)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 space-y-3">
-                  <h3 className="text-xl font-bold">{doctor.name}</h3>
-                  <div className="flex items-center space-x-2 text-cyan-400">
-                    <Award className="w-4 h-4" />
-                    <span>{doctor.specialty}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-gray-400">
-                    <MapPin className="w-4 h-4" />
-                    <span>{doctor.location}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center space-x-2">
-                      <ThumbsUp className="w-4 h-4 text-green-400" />
-                      <span className="text-sm">98% recommendation rate</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Link>
+            {error}
           </motion.div>
-        ))}
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {doctors.map((doctor) => (
+            <Link key={doctor.id} to={`/doctors/${doctor.id}`}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="cyber-card p-6 hover:scale-105 transition-transform"
+              >
+                <img
+                  src={doctor.image}
+                  alt={doctor.name}
+                  className="w-full h-48 object-cover rounded-lg mb-4"
+                />
+                <h3 className="text-xl font-bold neon-text">{doctor.name}</h3>
+                <p className="text-gray-400">{doctor.specialty}</p>
+                <p className="text-gray-400">Medical Center: {doctor.medicalCenterName}</p>
+                <p className="text-gray-400">Rating: {doctor.rating} ({doctor.reviews} reviews)</p>
+                <p className="text-gray-400">Location: {doctor.location}</p>
+                <div className="mt-2">
+                  <p className="text-gray-400 font-bold">Procedures:</p>
+                  <ul className="list-disc list-inside text-gray-400">
+                    {doctor.procedures.map((proc, idx) => (
+                      <li key={idx}>{proc}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="mt-2 flex items-center space-x-2">
+                  <Stethoscope className="w-5 h-5 text-cyan-400" />
+                  <p className="text-gray-400">View Details</p>
+                </div>
+              </motion.div>
+            </Link>
+          ))}
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

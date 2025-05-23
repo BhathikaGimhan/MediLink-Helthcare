@@ -8,6 +8,7 @@
     height: 8px;
   }
 
+
   ::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 999px;
@@ -24,6 +25,41 @@
 
   body {
     @apply bg-gray-900;
+  }
+}
+
+/* tailwind.css (append to existing file) */
+@layer components {
+  .login-container {
+    @apply relative bg-gray-900 min-h-screen flex items-center justify-center;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(0, 255, 255, 0.15) 0%,
+      rgba(0, 0, 0, 0) 70%
+    );
+  }
+
+  .login-card {
+    @apply cyber-card p-8 max-w-md w-full backdrop-blur-lg;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+  }
+
+  .login-button {
+    @apply cyber-button w-full flex items-center justify-center space-x-2 transition-transform;
+    transform: scale(1);
+  }
+
+  .login-button:hover {
+    transform: scale(1.05);
+  }
+
+  .input-field {
+    @apply p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400 w-full;
+    transition: border-color 0.3s ease, transform 0.2s ease;
+  }
+
+  .input-field:focus {
+    transform: scale(1.02);
   }
 }
 

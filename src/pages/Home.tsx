@@ -1,21 +1,20 @@
+// src/pages/Home.tsx
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Star, Users, Bot } from "lucide-react";
+import { Star, Users, Bot, Building } from "lucide-react";
 import ExamplePage from "./ExamplePage";
 
 const features = [
   {
     icon: Star,
     title: "Doctor Rankings",
-    description:
-      "Rate and review healthcare professionals based on your experience.",
+    description: "Rate and review healthcare professionals based on your experience.",
     link: "/doctors",
   },
   {
     icon: Users,
     title: "Community",
-    description:
-      "Join discussions and share your healthcare journey with others.",
+    description: "Join discussions and share your healthcare journey with others.",
     link: "/community",
   },
   {
@@ -23,6 +22,12 @@ const features = [
     title: "AI Assistant",
     description: "Get instant help with finding the right healthcare provider.",
     link: "/chat-history",
+  },
+  {
+    icon: Building,
+    title: "Request Medical Center Admin",
+    description: "Apply to manage a medical center and add doctors to MediLink.",
+    link: "/reg",
   },
 ];
 
@@ -41,7 +46,7 @@ const Home = () => {
           professionals and make informed decisions about your health.
         </p>
       </motion.div>
-      <div className="grid md:grid-cols-3 gap-8 mt-12">
+      <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8 mt-12">
         {features.map((feature, index) => (
           <motion.div
             key={feature.title}

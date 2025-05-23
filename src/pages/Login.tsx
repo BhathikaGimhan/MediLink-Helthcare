@@ -1,47 +1,181 @@
-const GoogleLogin = () => {
-  return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-r from-cyan-700 to-blue-800">
-      <div className="cyber-card p-8 w-full max-w-sm rounded-lg shadow-lg bg-gray-800">
-        <h2 className="text-2xl font-semibold text-center text-white mb-6">
-          Login with Google
-        </h2>
+// src/pages/Login.tsx
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { LogIn, Mail, Lock } from "lucide-react";
+import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, setPersistence, browserSessionPersistence } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+import { useUserStore } from "../stores/userStore";
+import { auth, db } from "../firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
-        {/* Google Login Button */}
-        <button className="w-full py-3  px-6 flex items-center justify-around bg-white text-gray-800 rounded-lg hover:bg-gray-100 transition-all">
-          {/* Google Logo as SVG */}
-          <svg
-            className="w-7 h-7"
-            viewBox="0 0 512 512"
-            xmlns="http://www.w3.org/2000/svg"
-            fill-rule="evenodd"
-            clip-rule="evenodd"
-            stroke-linejoin="round"
-            stroke-miterlimit="2"
+const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { user, setUser, isLoading: authLoading } = useUserStore();
+
+  useEffect(() => {
+    // Set session persistence to ensure auth state persists across page reloads
+    setPersistence(auth, browserSessionPersistence).catch((err) => {
+      console.error("Error setting persistence:", err);
+    });
+
+    // Redirect only if user is authenticated and auth loading is complete
+    if (!authLoading && user) {
+      navigate(user.role === "admin-1" ? "/admin" : "/");
+    }
+  }, [user, authLoading, navigate]);
+
+  const fetchUserRole = async (uid: string, displayName: string | null, email: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        return {
+          id: uid,
+          name: displayName || userData.name || email,
+          email: userData.email || email,
+          role: userData.role || "patient",
+        };
+      } else {
+        // Create a user document if it doesn't exist
+        const newUser = {
+          id: uid,
+          name: displayName || email,
+          email,
+          role: "patient",
+        };
+        await setDoc(doc(db, "users", uid), newUser);
+        return newUser;
+      }
+    } catch (err: any) {
+      console.error("Error fetching/creating user role:", err);
+      return {
+        id: uid,
+        name: displayName || email,
+        email,
+        role: "patient",
+      };
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    setError(null);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const userData = await fetchUserRole(result.user.uid, result.user.displayName, result.user.email || "");
+      setUser(userData);
+      navigate(userData.role === "admin-1" ? "/admin" : "/");
+    } catch (err: any) {
+      console.error("Google Sign-In Error:", { code: err.code, message: err.message, details: err });
+      setError(err.message || "Failed to sign in with Google.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const userData = await fetchUserRole(result.user.uid, result.user.displayName, email);
+      setUser(userData);
+      navigate(userData.role === "admin-1" ? "/admin" : "/");
+    } catch (err: any) {
+      console.error("Email/Password Sign-In Error:", { code: err.code, message: err.message, details: err });
+      setError(err.message || "Failed to sign in with email/password.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="min-h-screen flex items-center justify-center bg-gray-900 text-cyan-50"
+    >
+      <div className="cyber-card p-8 max-w-md w-full">
+        <h2 className="text-3xl font-bold neon-text mb-6 text-center">MediLink Login</h2>
+
+        {error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-red-400 bg-red-900/20 border border-red-500/30 p-3 rounded-lg text-center mb-4"
           >
-            <path d="M32.582 370.734C15.127 336.291 5.12 297.425 5.12 256c0-41.426 10.007-80.291 27.462-114.735C74.705 57.484 161.047 0 261.12 0c69.12 0 126.836 25.367 171.287 66.793l-73.31 73.309c-26.763-25.135-60.276-38.168-97.977-38.168-66.56 0-123.113 44.917-143.36 105.426-5.12 15.36-8.146 31.65-8.146 48.64 0 16.989 3.026 33.28 8.146 48.64l-.303.232h.303c20.247 60.51 76.8 105.426 143.36 105.426 34.443 0 63.534-9.31 86.341-24.67 27.23-18.152 45.382-45.148 51.433-77.032H261.12v-99.142h241.105c3.025 16.757 4.654 34.211 4.654 52.364 0 77.963-27.927 143.592-76.334 188.276-42.356 39.098-100.305 61.905-169.425 61.905-100.073 0-186.415-57.483-228.538-141.032v-.233z" />
+            {error}
+          </motion.div>
+        )}
+
+        <form onSubmit={handleEmailSignIn} className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Mail className="w-5 h-5 text-cyan-400" />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
+              required
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Lock className="w-5 h-5 text-cyan-400" />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading || authLoading}
+            className="cyber-button w-full flex items-center justify-center space-x-2"
+          >
+            <LogIn className="w-5 h-5" />
+            <span>{isLoading || authLoading ? "Logging in..." : "Sign In"}</span>
+          </button>
+        </form>
+
+        <div className="my-6 flex items-center">
+          <div className="flex-1 h-px bg-cyan-500/30"></div>
+          <span className="mx-4 text-gray-400">or</span>
+          <div className="flex-1 h-px bg-cyan-500/30"></div>
+        </div>
+
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={isLoading || authLoading}
+          className="cyber-button w-full flex items-center justify-center space-x-2"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M12.24 10.493v2.808h4.633c-.186 1.24-.76 2.28-1.704 2.976l2.784 2.136c1.704-1.584 2.688-3.84 2.688-6.312 0-.672-.072-1.32-.192-1.944h-8.209zm-1.128-2.808v2.808h-4.632c.192 1.248.768 2.28 1.704 2.976l-2.784 2.136c-1.704-1.584-2.688-3.84-2.688-6.312 0-.672.072-1.32.192-1.944h8.208zm1.128-2.808c-3.84 0-7.104 2.496-8.304 6h16.608c-1.2-3.504-4.464-6-8.304-6zm0-2.4c5.328 0 9.672 4.344 9.672 9.672s-4.344 9.672-9.672 9.672-9.672-4.344-9.672-9.672 4.344-9.672 9.672-9.672z"
+            />
           </svg>
-          <span className="text-sm font-semibold">Continue with Google</span>
+          <span>{isLoading || authLoading ? "Processing..." : "Sign in with Google"}</span>
         </button>
 
-        {/* Separator */}
-        <div className="flex items-center my-6">
-          <div className="flex-1 border-t border-gray-400"></div>
-          <span className="mx-2 text-gray-400">or</span>
-          <div className="flex-1 border-t border-gray-400"></div>
-        </div>
-
-        {/* Alternative Login Option */}
-        <div className="text-center text-gray-400">
-          <p className="text-sm">
-            Don't have an account?{" "}
-            <a href="#" className="text-cyan-400 hover:text-cyan-500">
-              Sign up
-            </a>
-          </p>
-        </div>
+        <p className="mt-4 text-center text-gray-400">
+          Don't have an account?{" "}
+          <a href="/reg" className="text-cyan-400 hover:underline">
+            Register
+          </a>
+        </p>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
-export default GoogleLogin;
+export default Login;
