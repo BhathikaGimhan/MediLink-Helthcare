@@ -38,12 +38,43 @@ const DoctorDetails = () => {
 
   useEffect(() => {
     const fetchDoctor = async () => {
-      if (!id) return;
+      if (!id) {
+        setError("No doctor ID provided.");
+        setIsLoading(false);
+        return;
+      }
       try {
         const docRef = doc(db, "doctors", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setDoctor({ id: docSnap.id, ...docSnap.data() } as Doctor);
+          const data = docSnap.data();
+          // Map Firestore data to Doctor interface with fallbacks
+          setDoctor({
+            id: docSnap.id,
+            name: data.name || "Dr. Unknown", // Fallback for missing name
+            specialty: data.specialty || "Unknown Specialty",
+            rating: data.rating || 0,
+            reviews: data.reviews || 0,
+            location: data.location || "Unknown Location",
+            image: data.image || "https://via.placeholder.com/300",
+            bio: data.bio || "No bio available.",
+            education: data.education || "No education details available.",
+            experience: data.experience || "No experience details available.",
+            procedures: data.procedures || [],
+            availability: {
+              status: data.availability?.status || "Unknown",
+              nextSlot: data.availability?.nextSlot || "Not available",
+              schedule: data.availability?.schedule || [], // Fallback to empty array
+            },
+            pharmacies: data.pharmacies || [],
+            privateClinic: {
+              name: data.privateClinic?.name || "No clinic name",
+              address: data.privateClinic?.address || "No address",
+              facilities: data.privateClinic?.facilities || [],
+              appointments: data.privateClinic?.appointments || "Not available",
+            },
+            medicalCenters: data.medicalCenters || [], // Use medicalCenters array
+          });
         } else {
           setError("Doctor not found.");
         }

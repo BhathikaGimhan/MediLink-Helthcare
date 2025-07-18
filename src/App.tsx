@@ -1,5 +1,4 @@
-// src/App.tsx
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import DoctorRanking from "./pages/DoctorRanking";
@@ -18,9 +17,11 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { useUserStore } from "./stores/userStore";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-function App() {
+// New component to handle routing and conditional centering
+function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const { initializeAuth } = useUserStore();
+  const location = useLocation(); // Now inside BrowserRouter context
 
   useEffect(() => {
     initializeAuth();
@@ -30,53 +31,64 @@ function App() {
     return () => clearTimeout(timer);
   }, [initializeAuth]);
 
+  // Determine if the current route is not admin
+  const isUserView = location.pathname !== "/admin";
+
+  return isLoading ? (
+    <Loader />
+  ) : (
+    <div className="min-h-screen bg-gray-900 text-cyan-50 font-sans">
+      <div className="cyber-gradient fixed inset-0 pointer-events-none w-full" />
+      <Navbar />
+      <main
+        className={`container pt-20 pb-8 ${
+          isUserView ? "ml-[10%]" : ""
+        }`}
+      >
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/doctors" element={<DoctorRanking />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/doctors/details/:id" element={<DoctorDetails />} />
+          <Route path="/community" element={<Community />} />
+          <Route
+            path="/chat-history"
+            element={
+              <ProtectedRoute>
+                <ChatHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="/report" element={<TreatmentReport />} />
+          <Route path="/reg" element={<Registration />} />
+          <Route
+            path="/book/:id"
+            element={
+              <ProtectedRoute>
+                <Booking />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
+function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        {isLoading ? (
-          <Loader />
-        ) : (
-          <div className="min-h-screen bg-gray-900 text-cyan-50 font-sans">
-            <div className="cyber-gradient fixed inset-0 pointer-events-none" />
-            <Navbar />
-            <main className="container pt-20 pb-8">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/doctors" element={<DoctorRanking />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/doctors/:id" element={<DoctorDetails />} />
-                <Route path="/community" element={<Community />} />
-                <Route
-                  path="/chat-history"
-                  element={
-                    <ProtectedRoute>
-                      <ChatHistory />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/login" element={<Login />} />
-                <Route path="/report" element={<TreatmentReport />} />
-                <Route path="/reg" element={<Registration />} />
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute adminOnly>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/book/:id"
-                  element={
-                    <ProtectedRoute>
-                      <Booking />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </main>
-          </div>
-        )}
+        <AppContent />
       </BrowserRouter>
     </ErrorBoundary>
   );
