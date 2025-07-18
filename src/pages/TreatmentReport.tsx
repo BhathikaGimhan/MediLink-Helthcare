@@ -1,101 +1,132 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import { DownloadCloudIcon, FileText } from "lucide-react";
 import { motion } from "framer-motion";
+import { db } from "../firebase";
+import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { useUserStore } from "../stores/userStore";
+
+interface Booking {
+  id: string;
+  doctorName: string;
+  appointmentTime: string;
+  medicalCenterName: string;
+  location: string;
+  status: string;
+}
 
 const TreatmentReport = () => {
   const [includeDoctorEvidence, setIncludeDoctorEvidence] = useState(true);
   const [includeTreatmentDetails, setIncludeTreatmentDetails] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(true);
-  const [includeDoctorSuggestions, setIncludeDoctorSuggestions] =
-    useState(true);
-  const [includeAppointmentDetails, setIncludeAppointmentDetails] =
-    useState(true);
+  const [includeDoctorSuggestions, setIncludeDoctorSuggestions] = useState(true);
+  const [includeAppointmentDetails, setIncludeAppointmentDetails] = useState(true);
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useUserStore();
 
   const reportData = {
-    userName: "John Doe",
-    ailment: "Fever, Cough",
-    suggestedTreatment: "Paracetamol 500mg - 3 times a day",
+    userName: user?.displayName || "John Doe",
+    ailment: "Fever, Cough", // Placeholder; ideally fetched from chat history
+    suggestedTreatment: "Paracetamol 500mg - 3 times a day", // Placeholder
     doctorSuggestions: [
-      {
-        name: "Dr. Smith",
-        specialization: "General Physician",
-        rating: "4.5/5",
-      },
-      {
-        name: "Dr. Jane",
-        specialization: "Internal Medicine",
-        rating: "4.2/5",
-      },
+      { name: "Dr. Smith", specialization: "General Physician", rating: "4.5/5" },
+      { name: "Dr. Jane", specialization: "Internal Medicine", rating: "4.2/5" },
     ],
-    doctorChanneling: "Dr. Smith - General Physician",
-    notes: "Drink plenty of water and rest well.",
-    appointmentDetails: [
-      { date: "2024-11-20", time: "10:00 AM", location: "City Clinic" },
-    ],
-    date: "22nd Nov 2024",
+    notes: "Drink plenty of water and rest well.", // Placeholder
+    date: new Date().toLocaleDateString(),
   };
+
+  useEffect(() => {
+    const fetchLatestBooking = async () => {
+      if (!user) return;
+      try {
+        const bookingsQuery = query(
+          collection(db, "bookings"),
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+        const querySnapshot = await getDocs(bookingsQuery);
+        if (!querySnapshot.empty) {
+          const bookingData = querySnapshot.docs[0].data();
+          setBooking({
+            id: querySnapshot.docs[0].id,
+            doctorName: bookingData.doctorName,
+            appointmentTime: bookingData.appointmentTime,
+            medicalCenterName: bookingData.medicalCenterName,
+            location: bookingData.location,
+            status: bookingData.status,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching booking:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchLatestBooking();
+  }, [user]);
 
   const generatePDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text("MediLink AI Treatment Report", 10, 10);
+    doc.text("MediLink AI Treatment Report", 20, 20);
 
     doc.setFontSize(12);
-    doc.text(`Name: ${reportData.userName}`, 10, 30);
-    doc.text(`Ailments: ${reportData.ailment}`, 10, 40);
+    let yPos = 40;
+    
+    doc.text(`Name: ${reportData.userName}`, 20, yPos);
+    yPos += 10;
+    doc.text(`Ailments: ${reportData.ailment}`, 20, yPos);
+    yPos += 10;
 
-    let yPos = 50;
     if (includeTreatmentDetails) {
-      doc.text(
-        `Suggested Treatment: ${reportData.suggestedTreatment}`,
-        10,
-        yPos
-      );
+      doc.text(`Suggested Treatment: ${reportData.suggestedTreatment}`, 20, yPos);
       yPos += 10;
     }
-    if (includeDoctorEvidence) {
-      doc.text(`Doctor Evidence: ${reportData.doctorChanneling}`, 10, yPos);
+    if (includeDoctorEvidence && booking) {
+      doc.text(`Doctor: ${booking.doctorName}`, 20, yPos);
       yPos += 10;
     }
     if (includeNotes) {
-      doc.text(`Notes: ${reportData.notes}`, 10, yPos);
+      doc.text(`Notes: ${reportData.notes}`, 20, yPos);
       yPos += 10;
     }
-
-    // Add Doctor Suggestions Table
     if (includeDoctorSuggestions) {
-      doc.text("Doctor Suggestions:", 10, yPos);
+      doc.text("Doctor Suggestions:", 20, yPos);
       yPos += 10;
       reportData.doctorSuggestions.forEach((docData, idx) => {
-        doc.text(
-          `${idx + 1}. ${docData.name} (${docData.specialization})`,
-          10,
-          yPos
-        );
-        doc.text(`Rating: ${docData.rating}`, 50, yPos + 10);
-        yPos += 20;
+        doc.text(`${idx + 1}. ${docData.name} (${docData.specialization})`, 20, yPos);
+        doc.text(`Rating: ${docData.rating}`, 60, yPos + 5);
+        yPos += 15;
       });
     }
-
-    // Add Appointment Details Table
-    if (includeAppointmentDetails) {
-      doc.text("Appointment Details:", 10, yPos);
+    if (includeAppointmentDetails && booking) {
+      doc.text("Appointment Details:", 20, yPos);
       yPos += 10;
-      reportData.appointmentDetails.forEach((appt) => {
-        doc.text(`Date: ${appt.date}`, 10, yPos);
-        doc.text(`Time: ${appt.time}`, 50, yPos + 10);
-        doc.text(`Location: ${appt.location}`, 10, yPos + 20);
-        yPos += 30;
-      });
+      doc.text(`Doctor: ${booking.doctorName}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Date & Time: ${booking.appointmentTime}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Location: ${booking.location}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Medical Center: ${booking.medicalCenterName}`, 20, yPos);
+      yPos += 10;
+      doc.text(`Status: ${booking.status}`, 20, yPos);
+      yPos += 10;
     }
 
-    doc.text(`Date: ${reportData.date}`, 10, yPos + 10);
+    doc.text(`Report Date: ${reportData.date}`, 20, yPos);
     doc.save("Treatment_Report.pdf");
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-gray-900 text-gray-100 rounded-lg space-y-6 animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-6 max-w-4xl mx-auto bg-gray-900 text-gray-100 rounded-xl space-y-6"
+    >
       {/* Header */}
       <h2 className="text-3xl font-bold text-cyan-400 flex items-center space-x-2">
         <FileText className="w-6 h-6" />
@@ -143,8 +174,6 @@ const TreatmentReport = () => {
             key={id}
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            // transition={{ type: "spring", stiffness: 150 }}
             transition={{ delay: id * 0.2 }}
           >
             <div className="flex items-center justify-between">
@@ -167,65 +196,51 @@ const TreatmentReport = () => {
       </div>
 
       {/* Preview Section */}
-      <div className="p-4 bg-gray-800 rounded-lg shadow-md max-h-80 min-h-80 overflow-y-auto space-y-3">
+      <div className="p-4 bg-gray-800 rounded-xl shadow-md max-h-80 overflow-y-auto space-y-3">
         <h3 className="text-xl font-semibold text-gray-100">Report Preview</h3>
-        <div className="text-sm space-y-2">
-          <p>
-            <strong>Name:</strong> {reportData.userName}
-          </p>
-          <p>
-            <strong>Ailments:</strong> {reportData.ailment}
-          </p>
-          {includeTreatmentDetails && (
-            <p>
-              <strong>Treatment:</strong> {reportData.suggestedTreatment}
-            </p>
-          )}
-          {includeDoctorEvidence && (
-            <p>
-              <strong>Doctor Evidence:</strong> {reportData.doctorChanneling}
-            </p>
-          )}
-          {includeNotes && (
-            <p>
-              <strong>Notes:</strong> {reportData.notes}
-            </p>
-          )}
-
-          {includeDoctorSuggestions && (
-            <div>
-              <strong>Doctor Suggestions:</strong>
-              <div className="space-y-2">
-                {reportData.doctorSuggestions.map((doc, idx) => (
-                  <div key={idx} className="flex justify-between">
-                    <p>
-                      {doc.name} ({doc.specialization})
-                    </p>
-                    <p>Rating: {doc.rating}</p>
-                  </div>
-                ))}
+        {isLoading ? (
+          <p className="text-gray-400">Loading booking details...</p>
+        ) : (
+          <div className="text-sm space-y-2">
+            <p><strong>Name:</strong> {reportData.userName}</p>
+            <p><strong>Ailments:</strong> {reportData.ailment}</p>
+            {includeTreatmentDetails && (
+              <p><strong>Treatment:</strong> {reportData.suggestedTreatment}</p>
+            )}
+            {includeDoctorEvidence && booking && (
+              <p><strong>Doctor:</strong> {booking.doctorName}</p>
+            )}
+            {includeNotes && (
+              <p><strong>Notes:</strong> {reportData.notes}</p>
+            )}
+            {includeDoctorSuggestions && (
+              <div>
+                <strong>Doctor Suggestions:</strong>
+                <div className="space-y-2">
+                  {reportData.doctorSuggestions.map((doc, idx) => (
+                    <div key={idx} className="flex justify-between">
+                      <p>{doc.name} ({doc.specialization})</p>
+                      <p>Rating: {doc.rating}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-
-          {includeAppointmentDetails && (
-            <div>
-              <strong>Appointment Details:</strong>
-              <div className="space-y-2">
-                {reportData.appointmentDetails.map((appt, idx) => (
-                  <div key={idx} className="flex justify-between">
-                    <p>Date: {appt.date}</p>
-                    <p>Time: {appt.time}</p>
-                    <p>Location: {appt.location}</p>
-                  </div>
-                ))}
+            )}
+            {includeAppointmentDetails && booking && (
+              <div>
+                <strong>Appointment Details:</strong>
+                <div className="space-y-2">
+                  <p>Doctor: {booking.doctorName}</p>
+                  <p>Date & Time: {booking.appointmentTime}</p>
+                  <p>Location: {booking.location}</p>
+                  <p>Medical Center: {booking.medicalCenterName}</p>
+                  <p>Status: {booking.status}</p>
+                </div>
               </div>
-            </div>
-          )}
-          <p>
-            <strong>Date:</strong> {reportData.date}
-          </p>
-        </div>
+            )}
+            <p><strong>Date:</strong> {reportData.date}</p>
+          </div>
+        )}
       </div>
 
       {/* Generate Button */}
@@ -235,7 +250,7 @@ const TreatmentReport = () => {
       >
         <DownloadCloudIcon /> Generate PDF Report
       </button>
-    </div>
+    </motion.div>
   );
 };
 

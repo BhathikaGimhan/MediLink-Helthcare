@@ -1,8 +1,10 @@
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { db } from "../firebase";
 import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
+import { useUserStore } from "../stores/userStore";
 
 interface Doctor {
   id: string;
@@ -25,6 +27,7 @@ interface Doctor {
   privateClinic: { name: string; address: string; facilities: string[]; appointments: string };
   medicalCenterId: string;
   medicalCenterName: string;
+  addedBy: string;
 }
 
 interface AddDoctorFormProps {
@@ -34,6 +37,7 @@ interface AddDoctorFormProps {
 }
 
 const AddDoctorForm = ({ medicalCenter, setDoctors, setError }: AddDoctorFormProps) => {
+  const { user } = useUserStore();
   const [newDoctor, setNewDoctor] = useState<Partial<Doctor>>({
     name: "",
     specialty: "",
@@ -48,6 +52,7 @@ const AddDoctorForm = ({ medicalCenter, setDoctors, setError }: AddDoctorFormPro
     availability: { status: "Available", nextSlot: "", schedule: [] },
     pharmacies: [],
     privateClinic: { name: "", address: "", facilities: [], appointments: "" },
+    addedBy: user?.id || "",
   });
 
   const handleAddDoctor = async (e: React.FormEvent) => {
@@ -56,7 +61,12 @@ const AddDoctorForm = ({ medicalCenter, setDoctors, setError }: AddDoctorFormPro
       setError("No medical center assigned.");
       return;
     }
+    if (!user) {
+      setError("No user authenticated.");
+      return;
+    }
     try {
+      // Check for existing doctor
       const existingDoctor = await getDocs(
         query(collection(db, "doctors"), where("name", "==", newDoctor.name))
       );
@@ -64,16 +74,34 @@ const AddDoctorForm = ({ medicalCenter, setDoctors, setError }: AddDoctorFormPro
         setError("This doctor is already registered with another medical center.");
         return;
       }
-
-      const doctorData: Doctor = {
-        ...newDoctor,
+  
+      // Prepare doctor data without the id field
+      const doctorData: Omit<Doctor, "id"> = {
+        name: newDoctor.name || "",
+        specialty: newDoctor.specialty || "",
+        rating: newDoctor.rating || 4.0,
+        reviews: newDoctor.reviews || 0,
+        location: newDoctor.location || "",
+        image: newDoctor.image || "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300&h=300",
+        bio: newDoctor.bio || "",
+        education: newDoctor.education || "",
+        experience: newDoctor.experience || "",
+        procedures: newDoctor.procedures || [],
+        availability: newDoctor.availability || { status: "Available", nextSlot: "", schedule: [] },
+        pharmacies: newDoctor.pharmacies || [],
+        privateClinic: newDoctor.privateClinic || { name: "", address: "", facilities: [], appointments: "" },
         medicalCenterId: medicalCenter.id,
         medicalCenterName: medicalCenter.name,
-        id: "",
-      } as Doctor;
-
+        addedBy: user.id,
+      };
+  
+      // Add document to Firestore
       const docRef = await addDoc(collection(db, "doctors"), doctorData);
-      setDoctors((prev) => [...prev, { ...doctorData, id: docRef.id }].slice(0, 3));
+      
+      // Update local state with the new doctor, including the generated ID
+      setDoctors((prev) => [...prev, { ...doctorData, id: docRef.id }]);
+      
+      // Reset form
       setNewDoctor({
         name: "",
         specialty: "",
@@ -88,8 +116,11 @@ const AddDoctorForm = ({ medicalCenter, setDoctors, setError }: AddDoctorFormPro
         availability: { status: "Available", nextSlot: "", schedule: [] },
         pharmacies: [],
         privateClinic: { name: "", address: "", facilities: [], appointments: "" },
+        addedBy: user.id,
       });
+      alert("Doctor added successfully!");
     } catch (err: any) {
+      console.error("Error adding doctor:", { code: err.code, message: err.message });
       setError(err.message || "Failed to add doctor.");
     }
   };
@@ -132,6 +163,15 @@ const AddDoctorForm = ({ medicalCenter, setDoctors, setError }: AddDoctorFormPro
           />
         </div>
         <div>
+          <label className="block text-gray-400">Image URL</label>
+          <input
+            type="text"
+            value={newDoctor.image}
+            onChange={(e) => setNewDoctor({ ...newDoctor, image: e.target.value })}
+            className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
+          />
+        </div>
+        <div>
           <label className="block text-gray-400">Bio</label>
           <textarea
             value={newDoctor.bio}
@@ -163,6 +203,62 @@ const AddDoctorForm = ({ medicalCenter, setDoctors, setError }: AddDoctorFormPro
             type="text"
             value={newDoctor.procedures?.join(", ")}
             onChange={(e) => setNewDoctor({ ...newDoctor, procedures: e.target.value.split(", ") })}
+            className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
+          />
+        </div>
+        <div>
+          <label className="block text-gray-400">Availability Status</label>
+          <select
+            value={newDoctor.availability?.status}
+            onChange={(e) => setNewDoctor({ ...newDoctor, availability: { ...newDoctor.availability!, status: e.target.value } })}
+            className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
+          >
+            <option value="Available">Available</option>
+            <option value="Unavailable">Unavailable</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-gray-400">Next Available Slot</label>
+          <input
+            type="text"
+            value={newDoctor.availability?.nextSlot}
+            onChange={(e) => setNewDoctor({ ...newDoctor, availability: { ...newDoctor.availability!, nextSlot: e.target.value } })}
+            className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
+          />
+        </div>
+        <div>
+          <label className="block text-gray-400">Schedule (comma-separated)</label>
+          <input
+            type="text"
+            value={newDoctor.availability?.schedule?.join(", ")}
+            onChange={(e) => setNewDoctor({ ...newDoctor, availability: { ...newDoctor.availability!, schedule: e.target.value.split(", ") } })}
+            className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
+          />
+        </div>
+        <div>
+          <label className="block text-gray-400">Private Clinic Name</label>
+          <input
+            type="text"
+            value={newDoctor.privateClinic?.name}
+            onChange={(e) => setNewDoctor({ ...newDoctor, privateClinic: { ...newDoctor.privateClinic!, name: e.target.value } })}
+            className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
+          />
+        </div>
+        <div>
+          <label className="block text-gray-400">Private Clinic Address</label>
+          <input
+            type="text"
+            value={newDoctor.privateClinic?.address}
+            onChange={(e) => setNewDoctor({ ...newDoctor, privateClinic: { ...newDoctor.privateClinic!, address: e.target.value } })}
+            className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
+          />
+        </div>
+        <div>
+          <label className="block text-gray-400">Private Clinic Facilities (comma-separated)</label>
+          <input
+            type="text"
+            value={newDoctor.privateClinic?.facilities?.join(", ")}
+            onChange={(e) => setNewDoctor({ ...newDoctor, privateClinic: { ...newDoctor.privateClinic!, facilities: e.target.value.split(", ") } })}
             className="w-full p-2 rounded-lg bg-gray-800 border border-cyan-500/30 focus:outline-none focus:border-cyan-400"
           />
         </div>

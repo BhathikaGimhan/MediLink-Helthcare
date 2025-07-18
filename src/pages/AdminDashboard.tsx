@@ -3,10 +3,11 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/userStore";
 import { db } from "../firebase";
-import { collection, query, where, getDocs, limit, setDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, setDoc, doc } from "firebase/firestore";
 import AdminSidebar from "../components/AdminSidebar";
 import AddDoctorForm from "../components/AddDoctorForm";
-import DoctorList from "../components/DoctorList";
+import EditDoctorForm from "../components/EditDoctorForm";
+import AdminDoctorList from "../components/AdminDoctorList";
 
 interface Doctor {
   id: string;
@@ -29,6 +30,7 @@ interface Doctor {
   privateClinic: { name: string; address: string; facilities: string[]; appointments: string };
   medicalCenterId: string;
   medicalCenterName: string;
+  addedBy: string;
 }
 
 const AdminDashboard = () => {
@@ -38,7 +40,8 @@ const AdminDashboard = () => {
   const [medicalCenter, setMedicalCenter] = useState<{ id: string; name: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<"dashboard" | "add-doctor">("dashboard");
+  const [activeSection, setActiveSection] = useState<"dashboard" | "add-doctor" | "edit-doctor">("dashboard");
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
 
   useEffect(() => {
     const checkAdminAndAssignCenter = async () => {
@@ -70,7 +73,6 @@ const AdminDashboard = () => {
         const centerDocs = await getDocs(centerQuery);
 
         if (centerDocs.empty) {
-          // Check medicalCenterRequests for approved request
           const requestQuery = query(
             collection(db, "medicalCenterRequests"),
             where("userId", "==", user.id),
@@ -85,7 +87,6 @@ const AdminDashboard = () => {
               adminId: user.id,
               createdAt: new Date().toISOString(),
             };
-            // Create medical center in medicalCenters collection
             const centerRef = doc(collection(db, "medicalCenters"));
             await setDoc(centerRef, medicalCenterData);
             setMedicalCenter({ id: centerRef.id, name: medicalCenterData.name });
@@ -99,12 +100,11 @@ const AdminDashboard = () => {
           setMedicalCenter({ id: centerDocs.docs[0].id, name: centerData.name });
         }
 
-        // Fetch doctors only if medicalCenter is set
+        // Fetch doctors
         if (medicalCenter?.id) {
           const doctorsQuery = query(
             collection(db, "doctors"),
-            where("medicalCenterId", "==", medicalCenter.id),
-            limit(3)
+            where("medicalCenterId", "==", medicalCenter.id)
           );
           const doctorsDocs = await getDocs(doctorsQuery);
           const doctorsList = doctorsDocs.docs.map((doc) => ({
@@ -125,12 +125,16 @@ const AdminDashboard = () => {
       }
     };
     checkAdminAndAssignCenter();
-  }, [user, navigate]);
+  }, [user, navigate, medicalCenter]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900 text-cyan-50">
-        Loading...
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1 }}
+          className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full"
+        />
       </div>
     );
   }
@@ -145,6 +149,7 @@ const AdminDashboard = () => {
       <AdminSidebar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
+        doctors={doctors}
       />
 
       {/* Main Content */}
@@ -176,10 +181,16 @@ const AdminDashboard = () => {
               setError={setError}
             />
           )}
-
+          {activeSection === "edit-doctor" && (
+            <EditDoctorForm
+              selectedDoctor={selectedDoctor}
+              setDoctors={setDoctors}
+              setError={setError}
+              setActiveSection={setActiveSection}
+            />
+          )}
           {activeSection === "dashboard" && (
             <>
-              {/* Admin Details */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -202,9 +213,12 @@ const AdminDashboard = () => {
                   </p>
                 </div>
               </motion.div>
-
-              {/* Doctor List */}
-              <DoctorList doctors={doctors} />
+              <AdminDoctorList
+                doctors={doctors}
+                setDoctors={setDoctors}
+                setActiveSection={setActiveSection}
+                setSelectedDoctor={setSelectedDoctor}
+              />
             </>
           )}
         </div>

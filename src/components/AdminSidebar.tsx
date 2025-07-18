@@ -1,12 +1,22 @@
 import { motion } from "framer-motion";
-import { Building, Plus } from "lucide-react";
+import { Building, Plus, User, ChevronDown, ChevronUp } from "lucide-react";
+
+interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  addedBy: string; // Admin ID who added the doctor
+}
 
 interface AdminSidebarProps {
-  activeSection: "dashboard" | "add-doctor";
-  setActiveSection: (section: "dashboard" | "add-doctor") => void;
+  activeSection: "dashboard" | "add-doctor" | "edit-doctor";
+  setActiveSection: (section: "dashboard" | "add-doctor" | "edit-doctor") => void;
+  doctors: Doctor[];
 }
 
 const AdminSidebar = ({ activeSection, setActiveSection }: AdminSidebarProps) => {
+  
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -45,6 +55,7 @@ const AdminSidebar = ({ activeSection, setActiveSection }: AdminSidebarProps) =>
           <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
           <span className="font-medium text-sm sm:text-base">Add Doctor</span>
         </button>
+        
       </nav>
     </motion.div>
   );
