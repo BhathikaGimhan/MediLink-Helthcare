@@ -121,6 +121,7 @@ const ChatHistory: React.FC = () => {
     };
     fetchDoctors();
   }, []);
+  console.log("Doctors state:", doctors);
 
   const updateDoctorMedicalCenterId = async (doctorId: string, newMedicalCenterId: string) => {
     try {
