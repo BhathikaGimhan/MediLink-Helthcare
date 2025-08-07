@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -8,9 +7,9 @@ import Sidebar from "../components/chat/Sidebar";
 import LocationBar from "../components/chat/LocationBar";
 import ChatMessageComponent from "../components/chat/ChatMessageComponent";
 import ChatInput from "../components/chat/ChatInput";
-import DoctorSuggestionModal from "../components/chat/DoctorSuggestionModal";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/userStore";
+import { useState, useEffect } from "react";
 
 export interface Doctor {
   id: string;
@@ -65,17 +64,18 @@ const ChatHistory: React.FC = () => {
     {
       id: 1,
       type: "bot",
-      content: "Hey there! I'm MediLink AI, your friendly health buddy. What's going on with you today?",
+      content: "ආයුබෝවන්! මම MediLink AI, ඔබේ හිතවත් සෞඛ්‍ය උපදේශකයා. අද ඔබට තියෙන රෝග ලක්ෂණ මොනවාද?",
       timestamp: format(new Date(), "hh:mm a"),
     },
   ]);
+  const [symptoms, setSymptoms] = useState<string[]>([]);
   const [lastCondition, setLastCondition] = useState<string>("");
-  const [isWaitingForDetails, setIsWaitingForDetails] = useState<boolean>(false);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [suggestedDoctors, setSuggestedDoctors] = useState<Doctor[]>([]);
-  const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
+  const [currentDoctorIndex, setCurrentDoctorIndex] = useState<number>(0);
+  const [isCollectingSymptoms, setIsCollectingSymptoms] = useState<boolean>(true);
 
   useEffect(() => {
     if (!user) {
@@ -110,18 +110,16 @@ const ChatHistory: React.FC = () => {
             medicalCenterName: data.medicalCenterName || "",
           } as Doctor;
         });
-        console.log("Fetched doctors:", doctorsList);
         setDoctors(doctorsList);
       } catch (err) {
         console.error("Error fetching doctors:", err);
-        setError("Failed to fetch doctors. Please try again later.");
+        setError("වෛද්‍යවරුන්ගේ තොරතුරු ලබා ගැනීමට අපහසු වුණා. කරුණාකර පසුව උත්සාහ කරන්න.");
       } finally {
         setIsLoadingDoctors(false);
       }
     };
     fetchDoctors();
   }, []);
-  console.log("Doctors state:", doctors);
 
   const updateDoctorMedicalCenterId = async (doctorId: string, newMedicalCenterId: string) => {
     try {
@@ -134,10 +132,9 @@ const ChatHistory: React.FC = () => {
           doctor.id === doctorId ? { ...doctor, medicalCenterId: newMedicalCenterId } : doctor
         )
       );
-      console.log(`Updated medicalCenterId for doctor ${doctorId} to ${newMedicalCenterId}`);
     } catch (err) {
       console.error("Error updating medicalCenterId:", err);
-      setError("Failed to update doctor's medical center ID.");
+      setError("වෛද්‍යවරයාගේ වෛද්‍ය මධ්‍යස්ථාන ID යාවත්කාලීන කිරීමට අපහසු වුණා.");
     }
   };
 
@@ -165,97 +162,121 @@ const ChatHistory: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
-  
+
     const userMessage: ChatMessage = {
       id: chats.length + 1,
       type: "user",
       content: message,
       timestamp: format(new Date(), "hh:mm a"),
     };
-  
+
     setChats((prev) => [...prev, userMessage]);
     setMessage("");
-  
+
     try {
-      const normalizedMessage = message.trim();
-      const isNewCondition = !lastCondition || chats.length <= 2;
-  
+      const normalizedMessage = message.trim().toLowerCase();
+      const isDoctorRequest = normalizedMessage.includes("doctor") || 
+                            normalizedMessage.includes("doctors") || 
+                            normalizedMessage.includes("වෛද්‍යවරු") || 
+                            normalizedMessage.includes("වෛද්‍යවරයා");
+      const isMoreDoctorsRequest = normalizedMessage.includes("තවත් වෛද්‍යවරු") || 
+                                  normalizedMessage.includes("අනිත් වෛද්‍යවරු");
+
       let prompt = "";
       let botResponse = "";
       let matchingDoctors: Doctor[] = [];
-  
-      if (isNewCondition) {
+
+      if (isCollectingSymptoms && !isDoctorRequest && !isMoreDoctorsRequest) {
+        setSymptoms((prev) => [...prev, normalizedMessage]);
         prompt = `
-          Your name is MediLink. You are a friendly health buddy. The user reported: "${normalizedMessage}".
-          Respond with a friendly message asking for more details about their symptoms to better understand their condition.
+          Your name is MediLink. You are a friendly health buddy responding in Sinhala. The user reported symptoms: "${[...symptoms, normalizedMessage].join(", ")}".
+          Analyze the symptoms to identify the most likely medical condition. If the symptoms are insufficient to determine a condition, ask for more symptoms in Sinhala with a question like "තවත් රෝග ලක්ෂණ තිබෙනවාද? උදාහරණයක් ලෙස: වේදනාවේ තීව්‍රතාව, කාලය, හෝ වෙනත් රෝග ලක්ෂණ ගැන කියන්න." If enough symptoms are provided to identify a condition, respond with "මෙය ඔබේ රෝගය විය හැකියි: [Condition]" and provide brief advice related to the condition. Do not suggest doctors unless explicitly asked.
+          Example: If the user says "මට හිසරදයක් තියෙනවා" and then "එය බරපතලයි, දවස පුරාම තියෙනවා," identify "බරපතල හිසරදය" and respond with "මෙය ඔබේ රෝගය විය හැකියි: බරපතල හිසරදය. බරපතල හිසරදයක් තියෙනවා නම්, ඔබට ජලය බොන්න, අඳුරු පරිසරයක විවේක ගන්න, හෝ බෙහෙත් ගන්න උත්සාහ කරන්න. එය දිගටම පවතිනවා නම්, වෛද්‍ය උපදෙස් ලබාගන්න."
         `;
-        setLastCondition(normalizedMessage);
-        setIsWaitingForDetails(true);
-      } else if (isWaitingForDetails) {
+      } else if (!isDoctorRequest && !isMoreDoctorsRequest) {
+        setSymptoms((prev) => [...prev, normalizedMessage]);
         prompt = `
-          Your name is MediLink. You are a friendly health buddy. The user previously reported: "${lastCondition}". Their latest response with more details is: "${normalizedMessage}".
-          Doctor data: ${JSON.stringify(doctors)}
-          Analyze the symptoms described in "${lastCondition}" and "${normalizedMessage}" to identify the most relevant medical specialty or condition. Based on this analysis, recommend up to three doctors from the provided data whose specialties or conditions match the symptoms. If no specific match, suggest a general practitioner. For each recommended doctor, provide their name and specialty in the format: "[Doctor Name](#doctor:DoctorID) (Specialty: Specialty)".
+          Your name is MediLink. You are a friendly health buddy responding in Sinhala. The user previously reported symptoms: "${symptoms.join(", ")}". Their latest response is: "${normalizedMessage}".
+          Analyze all symptoms ("${[...symptoms, normalizedMessage].join(", ")}") to confirm or refine the identified medical condition. Respond with "මෙය ඔබේ රෝගය විය හැකියි: [Condition]" and provide advice related to the condition. If the condition is unclear, state "ඔබේ රෝග තත්ත්වය පැහැදිලි නැත" and ask for more symptoms with "තවත් රෝග ලක්ෂණ තිබෙනවාද? උදාහරණයක් ලෙස: වේදනාවේ තීව්‍රතාව, කාලය, හෝ වෙනත් රෝග ලක්ෂණ ගැන කියන්න." Do not suggest doctors unless explicitly asked.
         `;
-        setIsWaitingForDetails(false);
       } else {
+        setIsCollectingSymptoms(false);
         prompt = `
-          Your name is MediLink. You are a friendly health buddy. The user previously reported: "${lastCondition}". Their latest response is: "${normalizedMessage}".
+          Your name is MediLink. You are a friendly health buddy responding in Sinhala. The user reported symptoms: "${symptoms.join(", ")}". Their latest response is: "${normalizedMessage}".
           Doctor data: ${JSON.stringify(doctors)}
-          Continue the conversation, providing advice or asking clarifying questions based on the symptoms. Analyze the symptoms to identify the most relevant medical specialty or condition. Recommend up to three doctors from the provided data whose specialties or conditions match the symptoms. If no specific match, suggest a general practitioner. For each recommended doctor, provide their name and specialty in the format: "[Doctor Name](#doctor:DoctorID) (Specialty: Specialty)".
+          User location: "${location || "unknown"}"
+          The user has requested doctors. Analyze the symptoms to identify the most relevant medical condition or specialty. Recommend one doctor whose specialty or conditions match the identified condition and is located in or near the user's location (if provided). If no location is provided or no doctors match, prioritize a relevant specialty. If no specific match, suggest a general practitioner. Provide the doctor's details in the format: "[Doctor Name](#doctor:DoctorID) (විශේෂත්වය: Specialty, ස්ථානය: Location, අධ්‍යාපනය: Education, පළපුරුද්ද: Experience, ජීව දත්ත: Bio)". Respond in Sinhala.
         `;
       }
-  
+
       const result = await model.generateContent(prompt);
       botResponse = await result.response.text();
-  
-      if (!isWaitingForDetails) {
-        matchingDoctors = doctors.filter(
-          (doctor) =>
-            lastCondition.toLowerCase().includes(doctor.specialty.toLowerCase()) ||
-            normalizedMessage.toLowerCase().includes(doctor.specialty.toLowerCase()) ||
-            doctor.conditions.some(
-              (condition) =>
-                lastCondition.toLowerCase().includes(condition.toLowerCase()) ||
-                normalizedMessage.toLowerCase().includes(condition.toLowerCase())
-            )
-        ).slice(0, 3); // Limit to 3 doctors
-  
+
+      if (isDoctorRequest || isMoreDoctorsRequest) {
+        matchingDoctors = doctors
+          .filter((doctor) => {
+            const matchesSpecialty =
+              doctor.specialty.toLowerCase().includes(lastCondition) ||
+              doctor.specialty.toLowerCase().includes(normalizedMessage) ||
+              doctor.conditions.some(
+                (condition) =>
+                  symptoms.some((symptom) => symptom.includes(condition.toLowerCase())) ||
+                  normalizedMessage.includes(condition.toLowerCase())
+              );
+            const matchesLocation =
+              !location ||
+              doctor.location.toLowerCase().includes(location.toLowerCase());
+            return matchesSpecialty && matchesLocation;
+          })
+          .sort((a, b) => b.rating - a.rating);
+
         if (matchingDoctors.length === 0) {
-          matchingDoctors = doctors.filter(
-            (doctor) =>
-              doctor.specialty.toLowerCase().includes("general practitioner") ||
-              doctor.specialty.toLowerCase().includes("family medicine")
-          ).slice(0, 3);
+          matchingDoctors = doctors
+            .filter(
+              (doctor) =>
+                (doctor.specialty.toLowerCase().includes("general practitioner") ||
+                  doctor.specialty.toLowerCase().includes("family medicine")) &&
+                (!location ||
+                  doctor.location.toLowerCase().includes(location.toLowerCase()))
+            )
+            .sort((a, b) => b.rating - a.rating);
         }
-  
+
         setSuggestedDoctors(matchingDoctors);
-  
+
         if (matchingDoctors.length > 0) {
-          const doctorLinks = matchingDoctors
-            .map((doctor) => generateDoctorLink(doctor) + ` (Specialty: ${doctor.specialty})`)
-            .join("\n");
-  
-          botResponse += `\n\nBased on your symptoms, I recommend the following doctor${matchingDoctors.length > 1 ? "s" : ""}:\n${doctorLinks}\n\nClick on a doctor's name to view their details.`;
+          const doctorIndex = isMoreDoctorsRequest
+            ? (currentDoctorIndex + 1) % matchingDoctors.length
+            : 0;
+          setCurrentDoctorIndex(doctorIndex);
+          const doctor = matchingDoctors[doctorIndex];
+          botResponse += `\n\nඔබේ රෝග ලක්ෂණ සහ ස්ථානය අනුව, පහත වෛද්‍යවරයා ගැන සලකා බලන්න පුළුවන්:\n[${doctor.name}](#doctor:${doctor.id}) (විශේෂත්වය: ${doctor.specialty}, ස්ථානය: ${doctor.location}, අධ්‍යාපනය: ${doctor.education}, පළපුරුද්ද: ${doctor.experience}, ජීව දත්ත: ${doctor.bio})\n\nවෛද්‍යවරයාගේ නම මත ක්ලික් කරලා ඔවුන්ගේ සම්පූර්ණ විස්තර බලන්න. ඔබේ පහසුව අනුව මෙම වෛද්‍යවරයා තෝරාගන්න. තවත් වෛද්‍යවරුන් ගැන දැනගන්න ඕන නම්, "තවත් වෛද්‍යවරු" කියලා ටයිප් කරන්න.`;
         } else {
-          botResponse += `\n\nI don’t have a specialist for that right now, but a general practitioner could check you out. Want me to look for one?`;
+          botResponse += `\n\nමම ${location || "ඔබේ ප්‍රදේශයේ"} ඒ සඳහා විශේෂඥ වෛද්‍යවරයෙකු හොයාගන්න බැරි වුණා, නමුත් සාමාන්‍ය වෛද්‍යවරයෙකුට ඔබව පරීක්ෂා කරන්න පුළුවන්. එවැන්නෙකු හොයන්නද?`;
+        }
+      } else {
+        // Check if enough symptoms are collected to make a diagnosis
+        const symptomCount = [...symptoms, normalizedMessage].length;
+        if (symptomCount >= 2) { // Arbitrary threshold for enough symptoms
+          setIsCollectingSymptoms(false);
+          setLastCondition([...symptoms, normalizedMessage].join(", "));
         }
       }
-  
+
       const botMessage: ChatMessage = {
         id: chats.length + 2,
         type: "bot",
         content: botResponse,
         timestamp: format(new Date(), "hh:mm a"),
       };
-  
+
       setChats((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error("Error with Gemini AI:", error);
       const errorMessage: ChatMessage = {
         id: chats.length + 2,
         type: "bot",
-        content: "Oops, something went wrong! Can you try again?",
+        content: "අප්ස! යමක් වැරදුණා. කරුණාකර ආයෙත් උත්සාහ කරන්න.",
         timestamp: format(new Date(), "hh:mm a"),
       };
       setChats((prev) => [...prev, errorMessage]);
@@ -265,7 +286,7 @@ const ChatHistory: React.FC = () => {
   if (isLoadingDoctors) {
     return (
       <div className="h-[calc(100vh-6rem)] flex items-center justify-center bg-gray-900 text-cyan-50">
-        Loading doctors...
+        වෛද්‍යවරුන්ගේ තොරතුරු ලබා ගනිමින්...
       </div>
     );
   }
@@ -299,24 +320,12 @@ const ChatHistory: React.FC = () => {
           <div className="h-full flex flex-col">
             <div className="flex-1 overflow-y-auto space-y-4 pb-4">
               {chats.map((chat, index) => (
-                <div key={chat.id}>
-                  <ChatMessageComponent
-                    chat={chat}
-                    index={index}
-                    navigate={navigate}
-                  />
-                  {chat.type === "bot" &&
-                    chat.content.includes("View Suggested Doctors") && (
-                      <div className="flex mt-2">
-                        <button
-                          className="cyber-button"
-                          onClick={() => setIsDoctorModalOpen(true)}
-                        >
-                          View Suggested Doctors
-                        </button>
-                      </div>
-                    )}
-                </div>
+                <ChatMessageComponent
+                  key={chat.id}
+                  chat={chat}
+                  index={index}
+                  navigate={navigate}
+                />
               ))}
             </div>
 
@@ -328,13 +337,6 @@ const ChatHistory: React.FC = () => {
           </div>
         </motion.div>
       </div>
-
-      <DoctorSuggestionModal
-        isOpen={isDoctorModalOpen}
-        onClose={() => setIsDoctorModalOpen(false)}
-        doctors={suggestedDoctors}
-        navigate={navigate}
-      />
     </div>
   );
 };
