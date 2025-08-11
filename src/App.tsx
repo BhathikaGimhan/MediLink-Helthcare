@@ -17,6 +17,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { useUserStore } from "./stores/userStore";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+
 // New component to handle routing and conditional centering
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);

@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Plus, ChevronRight, ChevronLeft } from "lucide-react";
 import { format } from "date-fns";
@@ -10,6 +9,7 @@ interface SidebarProps {
   isSidebarOpen: boolean;
   setActiveSession: (id: string) => void;
   toggleSidebar: () => void;
+  startNewChat: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -18,6 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   isSidebarOpen,
   setActiveSession,
   toggleSidebar,
+  startNewChat,
 }) => (
   <motion.div
     initial={{ x: isSidebarOpen ? 0 : -300 }}
@@ -28,7 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     }`}
   >
     <button
-      onClick={() => console.log("Start new chat")}
+      onClick={startNewChat}
       className="cyber-button w-full mb-4 flex items-center justify-center space-x-2"
     >
       <Plus className="w-4 h-4" />
