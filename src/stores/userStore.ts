@@ -1,4 +1,3 @@
-// src/stores/userStore.ts
 import { create } from "zustand";
 import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -23,7 +22,7 @@ export const useUserStore = create<UserStore>((set) => ({
   isLoading: true,
   setUser: (user) => set({ user, isLoading: false }),
   initializeAuth: () => {
-    set({ isLoading: true }); // Set loading true when initializing
+    set({ isLoading: true });
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
@@ -34,13 +33,12 @@ export const useUserStore = create<UserStore>((set) => ({
               user: {
                 id: firebaseUser.uid,
                 name: userData.name || firebaseUser.displayName || "Unknown",
-                email: userData.email || firebaseUser.email,
+                email: userData.email || firebaseUser.email || undefined,
                 role: userData.role || "patient",
               },
               isLoading: false,
             });
           } else {
-            // If no user document exists, set default user data
             set({
               user: {
                 id: firebaseUser.uid,
@@ -52,14 +50,16 @@ export const useUserStore = create<UserStore>((set) => ({
             });
           }
         } catch (err) {
-          console.error("Error fetching user data:", err);
+          console.error('Error fetching user data:', err);
           set({ user: null, isLoading: false });
         }
       } else {
         set({ user: null, isLoading: false });
       }
+    }, (err) => {
+      console.error('Auth state change error:', err);
+      set({ user: null, isLoading: false });
     });
-    // Return unsubscribe to clean up the listener (optional, can be called later if needed)
     return () => unsubscribe();
   },
 }));

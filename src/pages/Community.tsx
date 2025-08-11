@@ -1,7 +1,5 @@
-// Community.tsx
 import { useState } from "react";
 import { motion } from "framer-motion";
-
 import Doctors from "../components/Doctors";
 import Patients from "../components/Patients";
 
@@ -14,7 +12,7 @@ const Community = () => {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 min-h-screen bg-gray-900 p-4 md:p-8">
       {/* Navigation */}
       <div className="relative">
         <nav className="flex justify-center space-x-8 bg-gray-900/90 py-4 border-b border-cyan-500/30">
@@ -23,7 +21,7 @@ const Community = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`cursor-pointer relative text-gray-400 text-lg font-bold transition-all duration-300 hover:text-cyan-400 ${
-                activeTab === tab.id ? "text-cyan-400" : ""
+                activeTab === tab.id ? "text-cyan-400 neon-text" : ""
               }`}
             >
               {tab.label}

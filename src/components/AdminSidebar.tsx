@@ -1,22 +1,20 @@
 import { motion } from "framer-motion";
-import { Building, Plus, User, ChevronDown, ChevronUp } from "lucide-react";
+import { Building, Plus, User, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 
 interface Doctor {
   id: string;
   name: string;
   specialty: string;
-  addedBy: string; // Admin ID who added the doctor
+  addedBy: string;
 }
 
 interface AdminSidebarProps {
-  activeSection: "dashboard" | "add-doctor" | "edit-doctor";
-  setActiveSection: (section: "dashboard" | "add-doctor" | "edit-doctor") => void;
+  activeSection: "dashboard" | "add-doctor" | "edit-doctor" | "bookings";
+  setActiveSection: (section: "dashboard" | "add-doctor" | "edit-doctor" | "bookings") => void;
   doctors: Doctor[];
 }
 
 const AdminSidebar = ({ activeSection, setActiveSection }: AdminSidebarProps) => {
-  
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -55,7 +53,17 @@ const AdminSidebar = ({ activeSection, setActiveSection }: AdminSidebarProps) =>
           <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
           <span className="font-medium text-sm sm:text-base">Add Doctor</span>
         </button>
-        
+        <button
+          onClick={() => setActiveSection("bookings")}
+          className={`w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-all duration-200 ${
+            activeSection === "bookings"
+              ? "bg-cyan-500/20 text-cyan-400 neon-text shadow-md shadow-cyan-500/30"
+              : "text-gray-300 hover:bg-gray-800 hover:text-cyan-400"
+          }`}
+        >
+          <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="font-medium text-sm sm:text-base">Bookings</span>
+        </button>
       </nav>
     </motion.div>
   );

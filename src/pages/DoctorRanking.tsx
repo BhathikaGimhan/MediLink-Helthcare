@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { Stethoscope } from "lucide-react";
+import { useUserStore } from '../stores/userStore';
+import DoctorAvailability from './DoctorAvailability';
+import BookingForm from './BookingForm';
 
-// Define Doctor interface matching the database structure
 interface Doctor {
   id: string;
   name: string;
@@ -28,9 +30,11 @@ interface Doctor {
   privateClinic: { name: string; address: string; facilities: string[]; appointments: string };
   medicalCenterId: string;
   medicalCenterName: string;
+  isAvailable: boolean;
 }
 
 const DoctorRanking = () => {
+  const { user } = useUserStore();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,28 +43,33 @@ const DoctorRanking = () => {
   const [selectedSpecialty, setSelectedSpecialty] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedCondition, setSelectedCondition] = useState("");
+  const [selectedHospital, setSelectedHospital] = useState("");
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
 
   // Fetch doctors from Firestore
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const doctorsCollection = collection(db, "doctors");
-        const doctorsSnapshot = await getDocs(doctorsCollection);
+        const q = query(
+          collection(db, "doctors"),
+          where('availability.status', '==', 'Available')
+        );
+        const doctorsSnapshot = await getDocs(q);
         const doctorsList = doctorsSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-          // Ensure conditions is always an array
           conditions: Array.isArray(doc.data().conditions) ? doc.data().conditions : [],
-          // Ensure specialty and location are strings
           specialty: doc.data().specialty || "Unknown",
           location: doc.data().location || "Unknown",
+          medicalCenterName: doc.data().medicalCenterName || "Unknown",
+          isAvailable: doc.data().availability?.status === "Available",
         })) as Doctor[];
 
-        console.log("Fetched doctors:", doctorsList); // Debug log
+        console.log("Fetched doctors:", doctorsList);
         setDoctors(doctorsList);
         setFilteredDoctors(doctorsList);
       } catch (err: any) {
-        console.error("Error fetching doctors:", err); // Debug log
+        console.error("Error fetching doctors:", err);
         setError(err.message || "Failed to fetch doctors.");
       } finally {
         setIsLoading(false);
@@ -69,34 +78,29 @@ const DoctorRanking = () => {
     fetchDoctors();
   }, []);
 
-  // Search algorithm implementation
+  // Filter doctors based on search criteria
   useEffect(() => {
-    // Filter doctors based on search criteria
     const filterDoctors = () => {
       let result = [...doctors];
 
-      // Search by name (case-insensitive)
       if (searchQuery) {
         result = result.filter((doctor) =>
           doctor.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
       }
 
-      // Filter by specialty
       if (selectedSpecialty) {
         result = result.filter(
           (doctor) => doctor.specialty.toLowerCase() === selectedSpecialty.toLowerCase()
         );
       }
 
-      // Filter by location
       if (selectedLocation) {
         result = result.filter(
           (doctor) => doctor.location.toLowerCase() === selectedLocation.toLowerCase()
         );
       }
 
-      // Filter by condition
       if (selectedCondition) {
         result = result.filter((doctor) =>
           doctor.conditions.some((condition) =>
@@ -105,17 +109,19 @@ const DoctorRanking = () => {
         );
       }
 
-      // Sort by rating (descending)
-      result.sort((a, b) => b.rating - a.rating);
+      if (selectedHospital) {
+        result = result.filter(
+          (doctor) => doctor.medicalCenterId === selectedHospital
+        );
+      }
 
+      result.sort((a, b) => b.rating - a.rating);
       setFilteredDoctors(result);
     };
 
     filterDoctors();
-  }, [searchQuery, selectedSpecialty, selectedLocation, selectedCondition, doctors]);
+  }, [searchQuery, selectedSpecialty, selectedLocation, selectedCondition, selectedHospital, doctors]);
 
-  // Get unique specialties, locations, and conditions for dropdowns
-  // Use empty arrays as fallback and validate data
   const specialties = doctors.length
     ? Array.from(
         new Set(
@@ -143,6 +149,16 @@ const DoctorRanking = () => {
         )
       ).sort()
     : [];
+  const hospitals = doctors.length
+    ? Array.from(
+        new Set(
+          doctors.map((doctor) => ({
+            id: doctor.medicalCenterId,
+            name: doctor.medicalCenterName || "Unknown",
+          }))
+        )
+      ).sort((a, b) => (a.name || "Unknown").localeCompare(b.name || "Unknown"))
+    : [];
 
   if (isLoading) {
     return (
@@ -161,9 +177,7 @@ const DoctorRanking = () => {
       <div className="container mx-auto">
         <h1 className="text-4xl font-bold neon-text mb-8 text-center">Find a Doctor</h1>
 
-        {/* Search and Filter Controls */}
-        <div className="mb-8 flex space-y-4">
-          {/* Name Search Input */}
+        <div className="mb-8 flex space-y-4 md:space-y-0 md:space-x-4 flex-col md:flex-row">
           <input
             type="text"
             placeholder="Search by doctor name..."
@@ -171,8 +185,6 @@ const DoctorRanking = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full p-3 rounded-lg bg-gray-800 text-cyan-50 border border-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-500"
           />
-
-          {/* Specialty Filter */}
           <select
             value={selectedSpecialty}
             onChange={(e) => setSelectedSpecialty(e.target.value)}
@@ -186,8 +198,6 @@ const DoctorRanking = () => {
               </option>
             ))}
           </select>
-
-          {/* Location Filter */}
           <select
             value={selectedLocation}
             onChange={(e) => setSelectedLocation(e.target.value)}
@@ -201,8 +211,6 @@ const DoctorRanking = () => {
               </option>
             ))}
           </select>
-
-          {/* Condition Filter */}
           <select
             value={selectedCondition}
             onChange={(e) => setSelectedCondition(e.target.value)}
@@ -213,6 +221,19 @@ const DoctorRanking = () => {
             {conditions.map((condition, index) => (
               <option key={`condition-${index}`} value={condition}>
                 {condition}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedHospital}
+            onChange={(e) => setSelectedHospital(e.target.value)}
+            className="w-full p-3 rounded-lg bg-gray-800 text-cyan-50 border border-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            disabled={hospitals.length === 0}
+          >
+            <option value="">All Hospitals</option>
+            {hospitals.map((hospital, index) => (
+              <option key={`hospital-${index}`} value={hospital.id}>
+                {hospital.name}
               </option>
             ))}
           </select>
@@ -228,55 +249,73 @@ const DoctorRanking = () => {
           </motion.div>
         )}
 
-        {/* Doctors Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDoctors.map((doctor) => (
-            <Link key={doctor.id} to={`/doctors/details/${doctor.id}`}>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="cyber-card p-6 hover:scale-105 transition-transform"
-              >
-                <img
-                  src={doctor.image}
-                  alt={doctor.name}
-                  className="w-full h-48 object-cover rounded-lg mb-4"
-                />
-                <h3 className="text-xl font-bold neon-text">{doctor.name}</h3>
-                <p className="text-gray-400">{doctor.specialty}</p>
-                <p className="text-gray-400">Medical Center: {doctor.medicalCenterName}</p>
-                <p className="text-gray-400">Rating: {doctor.rating} ({doctor.reviews} reviews)</p>
-                <p className="text-gray-400">Location: {doctor.location}</p>
-                <div className="mt-2">
-                  <p className="text-gray-400 font-bold">Procedures:</p>
-                  <ul className="list-disc list-inside text-gray-400">
-                    {doctor.procedures.map((proc, idx) => (
-                      <li key={`procedure-${idx}`}>{proc}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="mt-2">
-                  <p className="text-gray-400 font-bold">Conditions:</p>
-                  <ul className="list-disc list-inside text-gray-400">
-                    {doctor.conditions.map((condition, idx) => (
-                      <li key={`condition-${idx}`}>{condition}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="mt-2 flex items-center space-x-2">
-                  <Stethoscope className="w-5 h-5 text-cyan-400" />
-                  <p className="text-gray-400">View Details</p>
-                </div>
-              </motion.div>
-            </Link>
+            <div key={doctor.id}>
+              <Link to={`/doctors/details/${doctor.id}`}>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="cyber-card p-6 hover:scale-105 transition-transform"
+                >
+                  <img
+                    src={doctor.image}
+                    alt={doctor.name}
+                    className="w-full h-48 object-cover rounded-lg mb-4"
+                  />
+                  <h3 className="text-xl font-bold neon-text">{doctor.name}</h3>
+                  <p className="text-gray-400">{doctor.specialty}</p>
+                  <p className="text-gray-400">Medical Center: {doctor.medicalCenterName}</p>
+                  <p className="text-gray-400">Rating: {doctor.rating} ({doctor.reviews} reviews)</p>
+                  <p className="text-gray-400">Location: {doctor.location}</p>
+                  <div className="mt-2">
+                    <p className="text-gray-400 font-bold">Procedures:</p>
+                    <ul className="list-disc list-inside text-gray-400">
+                      {doctor.procedures.map((proc, idx) => (
+                        <li key={`procedure-${idx}`}>{proc}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-2">
+                    <p className="text-gray-400 font-bold">Conditions:</p>
+                    <ul className="list-disc list-inside text-gray-400">
+                      {doctor.conditions.map((condition, idx) => (
+                        <li key={`condition-${idx}`}>{condition}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-2 flex items-center space-x-2">
+                    <Stethoscope className="w-5 h-5 text-cyan-400" />
+                    <p className="text-gray-400">View Details</p>
+                  </div>
+                </motion.div>
+              </Link>
+              {user?.role === 'admin-1' ? (
+                <DoctorAvailability doctor={doctor} />
+              ) : (
+                <button
+                  onClick={() => setSelectedDoctor(doctor)}
+                  className="mt-2 w-full bg-cyan-600 text-white py-2 rounded hover:bg-cyan-700 transition"
+                >
+                  Book Appointment
+                </button>
+              )}
+            </div>
           ))}
         </div>
 
-        {/* No Results Message */}
         {filteredDoctors.length === 0 && (
           <div className="text-center text-gray-400 mt-8">
             No doctors found matching your criteria. Try adjusting your search filters.
           </div>
+        )}
+
+        {selectedDoctor && user && (
+          <BookingForm
+            doctor={selectedDoctor}
+            userId={user.id}
+            onClose={() => setSelectedDoctor(null)}
+          />
         )}
       </div>
     </motion.div>

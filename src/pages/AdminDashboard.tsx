@@ -1,13 +1,14 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { useUserStore } from "../stores/userStore";
-import { db } from "../firebase";
-import { collection, query, where, getDocs, setDoc, doc } from "firebase/firestore";
-import AdminSidebar from "../components/AdminSidebar";
-import AddDoctorForm from "../components/AddDoctorForm";
-import EditDoctorForm from "../components/EditDoctorForm";
-import AdminDoctorList from "../components/AdminDoctorList";
+import React, { useState, useEffect } from 'react';
+import { collection, getDocs, query, where, setDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useUserStore } from '../stores/userStore';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import AdminSidebar from '../components/AdminSidebar';
+import AddDoctorForm from '../components/AddDoctorForm';
+import EditDoctorForm from '../components/EditDoctorForm';
+import AdminDoctorList from '../components/AdminDoctorList';
+import AdminBookingsTable from '../components/AdminBookingsTable';
 
 interface Doctor {
   id: string;
@@ -31,16 +32,17 @@ interface Doctor {
   medicalCenterId: string;
   medicalCenterName: string;
   addedBy: string;
+  isAvailable: boolean;
 }
 
-const AdminDashboard = () => {
+const AdminDashboard: React.FC = () => {
   const { user } = useUserStore();
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [medicalCenter, setMedicalCenter] = useState<{ id: string; name: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<"dashboard" | "add-doctor" | "edit-doctor">("dashboard");
+  const [activeSection, setActiveSection] = useState<"dashboard" | "add-doctor" | "edit-doctor" | "bookings">("dashboard");
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
 
   useEffect(() => {
@@ -110,6 +112,10 @@ const AdminDashboard = () => {
           const doctorsList = doctorsDocs.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
+            conditions: Array.isArray(doc.data().conditions) ? doc.data().conditions : [],
+            procedures: Array.isArray(doc.data().procedures) ? doc.data().procedures : [],
+            availability: doc.data().availability || { status: 'Unavailable', nextSlot: '', schedule: [] },
+            isAvailable: doc.data().availability?.status === 'Available',
           })) as Doctor[];
           setDoctors(doctorsList);
         }
@@ -145,24 +151,20 @@ const AdminDashboard = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gray-900 text-cyan-50 flex"
     >
-      {/* Sidebar */}
       <AdminSidebar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         doctors={doctors}
       />
 
-      {/* Main Content */}
       <div className="flex-1 p-4 sm:p-6 sm:pl-12 lg:pl-8">
         <div className="container mx-auto max-w-7xl">
-          {/* Header */}
           <div className="mb-6">
             <h1 className="text-3xl sm:text-4xl font-bold neon-text">
               {medicalCenter?.name || "Medical Center"} Admin Dashboard
             </h1>
           </div>
 
-          {/* Error Message */}
           {error && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -173,7 +175,6 @@ const AdminDashboard = () => {
             </motion.div>
           )}
 
-          {/* Content */}
           {activeSection === "add-doctor" && (
             <AddDoctorForm
               medicalCenter={medicalCenter}
@@ -188,6 +189,9 @@ const AdminDashboard = () => {
               setError={setError}
               setActiveSection={setActiveSection}
             />
+          )}
+          {activeSection === "bookings" && medicalCenter && (
+            <AdminBookingsTable medicalCenterId={medicalCenter.id} />
           )}
           {activeSection === "dashboard" && (
             <>
