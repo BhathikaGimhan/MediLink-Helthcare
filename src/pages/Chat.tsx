@@ -453,12 +453,13 @@ const ChatHistory: React.FC = () => {
                 />
               ))}
             </div>
-
+<div className="absolute bottom-3 w-[98%]">
             <ChatInput
               message={message}
               setMessage={setMessage}
               handleSendMessage={handleSendMessage}
             />
+            </div>
           </div>
         </motion.div>
       </div>

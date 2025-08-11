@@ -11,7 +11,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   setMessage,
   handleSendMessage,
 }) => (
-  <div className="mt-4 flex bottom-0 fixed space-x-4">
+  <div className="mt-4 flex space-x-4">
     <input
       type="text"
       placeholder="Tell me about your symptoms..."
