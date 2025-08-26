@@ -26,9 +26,9 @@ const DoctorSuggestionModal: React.FC<DoctorSuggestionModalProps> = ({
 
   const confirmBooking = () => {
     if (selectedDoctor && selectedDateTime) {
-      console.log(
-        `Booking confirmed with ${selectedDoctor.name} for ${selectedDateTime}`
-      );
+      // console.log(
+      //   `Booking confirmed with ${selectedDoctor.name} for ${selectedDateTime}`
+      // );
       setSelectedDoctor(null);
       setSelectedDateTime("");
       onClose();

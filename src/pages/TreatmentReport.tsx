@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { db } from "../firebase";
 import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import { useUserStore } from "../stores/userStore";
+import Loader from "../components/Loader";
 
 interface Booking {
   id: string;
@@ -199,7 +200,7 @@ const TreatmentReport = () => {
       <div className="p-4 bg-gray-800 rounded-xl shadow-md max-h-80 overflow-y-auto space-y-3">
         <h3 className="text-xl font-semibold text-gray-100">Report Preview</h3>
         {isLoading ? (
-          <p className="text-gray-400">Loading booking details...</p>
+          <Loader/>
         ) : (
           <div className="text-sm space-y-2">
             <p><strong>Name:</strong> {reportData.userName}</p>

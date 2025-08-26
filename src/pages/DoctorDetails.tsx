@@ -17,6 +17,7 @@ import { Calendar, Star, MapPin, Briefcase, BookOpen, Pill } from "lucide-react"
 import { format } from "date-fns";
 import { useUserStore } from "../stores/userStore";
 import BookingForm from "./BookingForm";
+import Loader from "../components/Loader";
 
 interface Doctor {
   id: string;
@@ -214,13 +215,7 @@ const DoctorDetails = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-cyan-50">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1 }}
-          className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full"
-        />
-      </div>
+      <Loader/>
     );
   }
 

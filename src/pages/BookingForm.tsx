@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { doc, setDoc, getDoc, increment, updateDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Doctor } from '../types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useUserStore } from '../stores/userStore';
+import { useNotificationStore } from '../stores/notificationStore';
+import Alert from '../components/Alert';
 
 interface BookingFormProps {
   doctor: Doctor;
@@ -13,30 +15,32 @@ interface BookingFormProps {
 
 const BookingForm: React.FC<BookingFormProps> = ({ doctor, userId, onClose }) => {
   const { user } = useUserStore();
+  const { addNotification } = useNotificationStore();
   const [dateTime, setDateTime] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !user) {
       setError('User not authenticated. Please log in.');
+      setAlert({ message: 'User not authenticated. Please log in.', type: 'error' });
       return;
     }
     if (!dateTime) {
       setError('Please select a date and time.');
+      setAlert({ message: 'Please select a date and time.', type: 'error' });
       return;
     }
 
     setIsLoading(true);
     try {
-      // Fetch user details
       const userRef = doc(db, 'users', userId);
       const userSnap = await getDoc(userRef);
       const userName = userSnap.exists() ? userSnap.data().name || user.displayName || 'Anonymous' : 'Anonymous';
       const userEmail = userSnap.exists() ? userSnap.data().email || user.email || 'Unknown' : 'Unknown';
 
-      // Generate booking number
       const counterRef = doc(db, 'counters', 'bookingCounter');
       const counterSnap = await getDoc(counterRef);
       let bookingNumber = 1;
@@ -45,25 +49,38 @@ const BookingForm: React.FC<BookingFormProps> = ({ doctor, userId, onClose }) =>
       }
       await setDoc(counterRef, { lastNumber: bookingNumber }, { merge: true });
 
-      // Save booking
       const bookingRef = doc(collection(db, 'bookings'));
-      await setDoc(bookingRef, {
+      const bookingData = {
         userId,
         userName,
         userEmail,
         doctorId: doctor.id,
         doctorName: doctor.name,
+        doctorImage: doctor.image || "https://via.placeholder.com/150", // Save doctor image
         medicalCenterId: doctor.medicalCenterId,
         dateTime,
         createdAt: new Date().toISOString(),
         status: 'booked',
         bookingNumber,
+        read: false, // Add read status for notifications
+      };
+      await setDoc(bookingRef, bookingData);
+
+      const notificationMessage = `Appointment booked with Dr. ${doctor.name} on ${new Date(dateTime).toLocaleString()} at Medical Center ID: ${doctor.medicalCenterId}. Booking Number: ${bookingNumber}`;
+      addNotification({
+        id: bookingRef.id,
+        message: notificationMessage,
+        timestamp: new Date().toLocaleString(),
+        read: false,
+        bookingId: bookingRef.id,
       });
 
-      onClose();
+      setAlert({ message: 'Appointment booked successfully!', type: 'success' });
+      setTimeout(onClose, 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to create booking.');
-      console.error(err);
+      const errorMessage = err.message || 'Failed to create booking.';
+      setError(errorMessage);
+      setAlert({ message: errorMessage, type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -83,8 +100,15 @@ const BookingForm: React.FC<BookingFormProps> = ({ doctor, userId, onClose }) =>
         className="bg-gray-900 p-6 rounded-md shadow-lg border border-cyan-500/30 max-w-md w-full"
       >
         <h3 className="text-xl font-bold neon-text mb-4">Book Appointment with {doctor.name}</h3>
-        {error && (
+        {error && !alert && (
           <p className="text-red-400 bg-red-900/20 border border-red-500/30 p-2 rounded-lg mb-4">{error}</p>
+        )}
+        {alert && (
+          <Alert
+            message={alert.message}
+            type={alert.type}
+            onClose={() => setAlert(null)}
+          />
         )}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">

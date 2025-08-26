@@ -176,7 +176,7 @@ const Navbar = () => {
         initial={{ x: "100%" }}
         animate={{ x: isMenuOpen ? 0 : "100%" }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed top-0 right-0 bottom-0 w-3/4 bg-gray-900/95 p-6 lg:hidden border-l border-cyan-500/30"
+        className="fixed top-0 right-0 bottom-0 w-3/4  bg-gray-900/95 p-6 lg:hidden border-l border-cyan-500/30"
       >
         <div className="flex flex-col space-y-6">
           {links.map(({ to, icon: Icon, label }) => (

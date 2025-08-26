@@ -7,6 +7,7 @@ import { Stethoscope } from "lucide-react";
 import { useUserStore } from '../stores/userStore';
 import DoctorAvailability from './DoctorAvailability';
 import BookingForm from './BookingForm';
+import Loader from "../components/Loader";
 
 interface Doctor {
   id: string;
@@ -162,9 +163,7 @@ const DoctorRanking = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-cyan-50">
-        Loading...
-      </div>
+      <Loader/>
     );
   }
 

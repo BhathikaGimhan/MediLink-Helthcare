@@ -43,7 +43,7 @@ function AppContent() {
       <Navbar />
       <main
         className={`container pt-20 pb-8 ${
-          isUserView ? "ml-[10%]" : ""
+          isUserView ? "md:ml-[5%] lg:ml-[10%]" : ""
         }`}
       >
         <Routes>

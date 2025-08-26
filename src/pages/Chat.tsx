@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../stores/userStore";
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
+import Loader from "../components/Loader";
 
 export interface Doctor {
   id: string;
@@ -74,38 +75,48 @@ const ChatHistory: React.FC = () => {
   }, [user, navigate]);
 
   // Fetch and save user details (name, location), create user doc if not exists
-  useEffect(() => {
-    if (!user) return;
-    const userRef = doc(db, "users", user.id);
-    const fetchUserDetails = async () => {
-      try {
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          if (userData?.location) setLocation(userData.location);
-          if (userData?.name) setUserName(userData.name);
-        } else {
-          await setDoc(userRef, { createdAt: new Date().toISOString() });
-        }
-      } catch (err) {
-        console.error("Error fetching user details:", err);
-        setError("පරිශීලක තොරතුරු ලබා ගැනීමට අපහසු වුණා.");
-      }
-    };
-    fetchUserDetails();
+useEffect(() => {
+  
 
-    const saveUserDetails = async () => {
-      if (location.trim() || userName) {
-        try {
-          await setDoc(userRef, { location, name: userName || "" }, { merge: true });
-        } catch (err) {
-          console.error("Error saving user details:", err);
-          setError("පරිශීලක තොරතුරු සුරැකීමට අපහසු වුණා.");
-        }
+  if (!user) return;
+  const userRef = doc(db, "users", user.id);
+  const fetchUserDetails = async () => {
+    try {
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (userData?.location) setLocation(userData.location);
+        if (userData?.name) setUserName(userData.name);
+      } else {
+        
+        // If no user document exists, use Google displayName if available
+        const googleName = user.name || null;
+        setUserName(googleName);
+        await setDoc(userRef, { 
+          createdAt: new Date().toISOString(),
+          name: googleName || "", // Save Google displayName to Firestore
+          location: ""
+        });
       }
-    };
-    saveUserDetails();
-  }, [user, location, userName]);
+    } catch (err) {
+      console.error("Error fetching user details:", err);
+      setError("පරිශීලක තොරතුරු ලබා ගැනීමට අපහසු වුණා.");
+    }
+  };
+  fetchUserDetails();
+
+  const saveUserDetails = async () => {
+    if (location.trim() || userName) {
+      try {
+        await setDoc(userRef, { location, name: userName || "" }, { merge: true });
+      } catch (err) {
+        console.error("Error saving user details:", err);
+        setError("පරිශීලක තොරතුරු සුරැකීමට අපහසු වුණා.");
+      }
+    }
+  };
+  saveUserDetails();
+}, [user, location, userName]);
 
   // Fetch doctors
   useEffect(() => {
@@ -405,9 +416,7 @@ const ChatHistory: React.FC = () => {
 
   if (isLoadingDoctors || isLoadingSessions) {
     return (
-      <div className="h-[calc(100vh-6rem)] flex items-center justify-center bg-gray-900 text-cyan-50">
-        තොරතුරු ලබා ගනිමින්...
-      </div>
+      <Loader/>
     );
   }
 
