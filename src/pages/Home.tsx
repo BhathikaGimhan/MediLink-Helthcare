@@ -2,9 +2,12 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Star, Users, Bot, Building } from "lucide-react";
-import ExamplePage from "./ExamplePage";
+import { useEffect, useState } from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../firebase"; // Adjust the path to your firebase config
+import { useUserStore } from "../stores/userStore";
 
-const features = [
+const featuresBase = [
   {
     icon: Star,
     title: "Doctor Rankings",
@@ -27,11 +30,55 @@ const features = [
     icon: Building,
     title: "Request Medical Center Admin",
     description: "Apply to manage a medical center and add doctors to MediLink.",
-    link: "/reg",
+    link: "/reg", // Default link
   },
 ];
 
 const Home = () => {
+  const { user } = useUserStore();
+  const [features, setFeatures] = useState(featuresBase);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) return;
+
+      try {
+        // Check if user is admin-1
+        const userQuery = query(
+          collection(db, "users"),
+          where("id", "==", user.id),
+          where("role", "==", "admin-1")
+        );
+        const userDocs = await getDocs(userQuery);
+
+        if (!userDocs.empty) {
+          // Check if medical center request is approved
+          const requestQuery = query(
+            collection(db, "medicalCenterRequests"),
+            where("userId", "==", user.id),
+            where("status", "==", "approved")
+          );
+          const requestDocs = await getDocs(requestQuery);
+
+          if (!requestDocs.empty) {
+            // Update the link for "Request Medical Center Admin" to /admin
+            setFeatures((prevFeatures) =>
+              prevFeatures.map((feature) =>
+                feature.title === "Request Medical Center Admin"
+                  ? { ...feature, link: "/admin" }
+                  : feature
+              )
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Error checking admin status:", err);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
+
   return (
     <div className="space-y-12">
       <motion.div
@@ -39,7 +86,6 @@ const Home = () => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center space-y-4"
       >
-        <ExamplePage />
         <h1 className="text-5xl font-bold neon-text">Welcome to MediLink</h1>
         <p className="text-xl text-gray-400 max-w-2xl mx-auto">
           The future of healthcare ratings is here. Connect with top medical

@@ -5,7 +5,6 @@ import { db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { Stethoscope } from "lucide-react";
 import { useUserStore } from '../stores/userStore';
-import DoctorAvailability from './DoctorAvailability';
 import BookingForm from './BookingForm';
 import Loader from "../components/Loader";
 
@@ -289,7 +288,7 @@ const DoctorRanking = () => {
                   </div>
                 </motion.div>
               </Link>
-              {user?.role === 'admin-1' ? (
+              {/* {user?.role === 'admin-1' ? (
                 <DoctorAvailability doctor={doctor} />
               ) : (
                 <button
@@ -298,7 +297,7 @@ const DoctorRanking = () => {
                 >
                   Book Appointment
                 </button>
-              )}
+              )} */}
             </div>
           ))}
         </div>
